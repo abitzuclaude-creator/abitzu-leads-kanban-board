@@ -72,12 +72,33 @@ Accent `#5acec4`, accent ink `#08332f`, accent soft `#5acec424`. Backgrounds
 Priority: Hot `#ef4444`, Warm `#f59e0b`, Cold `#22a06b`. Font: Plus Jakarta Sans;
 icons: Material Symbols Outlined. Rounded cards (11–16px), subtle shadows.
 
+## Delivery workflow — how changes reach the live site (FOLLOW THIS EXACTLY)
+The user is non-technical and **reviews every change on a preview before it goes
+live.** Never push straight to production. The pipeline is:
+
+1. **Develop** on the working branch `claude/abitzu-lead-pipeline-ok2uvn` and commit.
+2. **Push** the branch. This does NOT change the live site — `main` is production;
+   the working branch is not.
+3. **Open a Pull Request to `main`.** Vercel automatically builds a **preview
+   deployment** and posts a preview link on the PR (as a `vercel[bot]` comment, and
+   as a "Vercel" commit status with a `target_url`). Fetch that preview URL with the
+   GitHub tools (`pull_request_read` → `get_comments` or `get_status`) and give it to
+   the user as their testing link.
+4. **The user tests on the preview** and approves — or asks for changes, in which
+   case iterate on the same branch; each new push refreshes the same preview URL.
+5. **Only after explicit approval, merge the PR into `main`.** That merge is the
+   moment it goes live. Never merge without the user's clear go-ahead.
+
+So pushing the branch and opening a PR is expected and safe (preview only). Merging
+to `main` is the single irreversible "go live" step and always needs approval.
+
 ## Rules
 - This board is LIVE with real leads. Never wipe or bulk-mutate data. Treat schema
   changes and any destructive/irreversible action as needing explicit confirmation.
 - Keep all data fields snake_case (Supabase-ready). Preserve the brand look above.
-- Develop on the branch above; commit with clear messages; only push when asked;
-  don't open a PR unless asked.
+- Develop on the working branch with clear commit messages. Pushing the branch and
+  opening a PR to `main` (for the preview) is expected; **never merge to `main` (go
+  live) without the user's explicit approval.** See "Delivery workflow" above.
 
 ## Known quirks (cleanup candidates, not blockers)
 - **Stage order** differs between code and DB: the board's `stageDefs()` lists
