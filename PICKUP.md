@@ -114,6 +114,22 @@ An admin-only, role-based access-control system is being built from the
 - **Enforcement is three layers:** (1) the screen sets permissions, (2) the app
   hides/disables actions per the current user's role, (3) Supabase RLS enforces it
   for real at the DB. Only layer 3 is true security.
+- **Hide vs. disable (agreed hybrid):** *hide* whole pages/sections a role has no
+  business in (e.g. no "View analytics" → the Analytics entry point is absent);
+  *disable* individual fields/buttons inside a screen they CAN see (greyed,
+  `not-allowed` cursor, hover tooltip/lock icon "you don't have permission").
+- **Permission list (Phase 0, agreed):** 4 groups — **Board & Leads** (view / view
+  all POCs' / create / priority / reassign POC / source), **Lead details — edit by
+  section** (Follow-up, Client Information, Qualification, Demo Information, Demo
+  Feedback, plus Add follow-up), **Pipeline** (single Move & archive toggle),
+  **Analytics** (single View). No Demos/Communication/Administration groups. No
+  separate "filter" permission (filtering only reshapes your own visible set;
+  "View all POCs' leads" is the real gate).
+- **Edit-by-section UX (agreed):** the lead drawer keeps ONE Edit button (no
+  per-section buttons). Clicking it flips the card to edit mode where only the
+  allowed sections become editable; disallowed sections stay visible/readable but
+  locked (greyed, not-allowed cursor, hover lock icon). If a role can edit NO
+  section, the single Edit button is hidden entirely.
 
 **STANDING RULE — when you build ANY new user-facing feature or action, you MUST
 also wire its permission into this system:** define the permission (in the matrix /
