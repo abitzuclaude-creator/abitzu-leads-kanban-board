@@ -152,7 +152,7 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
   <!-- ===== MEMBERS VIEW ===== -->
   <sc-if value="{{ isMembers }}">
     <div style="flex:1;padding:16px 26px 40px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">preview</span>Preview — team members aren't linked to real logins yet. This tab becomes live in a later step.</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Roles come from the Permissions tab; changes save instantly.</div>
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
         <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
           <span style="flex:1">Member</span>
@@ -259,21 +259,8 @@ class Component extends DCLogic {
       perms: {},                 // { roleKey: { permId: bool } }
       cloneRoles: [],            // all roles incl Owner, for the clone dropdown
       loadError: "",
-      // Team tab — cosmetic mock until real logins are wired
-      members: [
-        { id: "u1", name: "Anuj",   email: "anuj@abitzu.in",   role: "owner",   lastActive: "Just now",   status: "active" },
-        { id: "u2", name: "Chhavi", email: "chhavi@abitzu.in", role: "manager", lastActive: "12 min ago", status: "active" },
-        { id: "u3", name: "Rupesh", email: "rupesh@abitzu.in", role: "poc",     lastActive: "1 hr ago",   status: "active" },
-        { id: "u4", name: "Vipul",  email: "vipul@abitzu.in",  role: "poc",     lastActive: "3 hrs ago",  status: "active" },
-        { id: "u5", name: "Hitesh", email: "hitesh@abitzu.in", role: "onboard", lastActive: "Yesterday",  status: "invited" },
-      ],
-      mockRoles: [
-        { key: "owner",   name: "Owner",         color: "#0f1b1a" },
-        { key: "manager", name: "Sales Manager", color: "#6366f1" },
-        { key: "poc",     name: "Sales POC",     color: "#0ea5e9" },
-        { key: "onboard", name: "Onboarding",    color: "#22a06b" },
-        { key: "viewer",  name: "Viewer",        color: "#94a3b8" },
-      ],
+      members: [],               // real team_members, loaded from Supabase
+      allRoles: [],              // every role incl Owner (with colour), for lookups
       roleModalOpen: false,
       draftName: "", draftClone: "", draftError: "", saving: false,
       toast: null,
@@ -319,14 +306,16 @@ class Component extends DCLogic {
   async loadData() {
     const sb = this._sb;
     try {
-      const [permsRes, rolesRes, rpRes] = await Promise.all([
+      const [permsRes, rolesRes, rpRes, memRes] = await Promise.all([
         sb.from("permissions").select("id,module,label,hint,position").order("position", { ascending: true }),
         sb.from("roles").select("key,name,accent,locked,position").order("position", { ascending: true }),
         sb.from("role_permissions").select("role_key,permission_id,allowed"),
+        sb.from("team_members").select("id,name,email,role_key,status,last_active").order("name", { ascending: true }),
       ]);
       if (permsRes.error) throw permsRes.error;
       if (rolesRes.error) throw rolesRes.error;
       if (rpRes.error) throw rpRes.error;
+      if (memRes.error) throw memRes.error;
 
       const moduleDefs = [];
       const byMod = {};
@@ -338,12 +327,16 @@ class Component extends DCLogic {
       const perms = {};
       (rpRes.data || []).forEach((rp) => { (perms[rp.role_key] = perms[rp.role_key] || {})[rp.permission_id] = rp.allowed; });
 
-      const roles = (rolesRes.data || []).filter((r) => !r.locked).map((r, i) => ({
-        key: r.key, name: r.name, color: r.accent || ROLE_PALETTE[i % ROLE_PALETTE.length],
+      const allRoles = (rolesRes.data || []).map((r, i) => ({
+        key: r.key, name: r.name, locked: !!r.locked, color: r.accent || ROLE_PALETTE[i % ROLE_PALETTE.length],
       }));
-      const cloneRoles = (rolesRes.data || []).map((r) => ({ key: r.key, name: r.name }));
+      const roles = allRoles.filter((r) => !r.locked);
+      const cloneRoles = allRoles.map((r) => ({ key: r.key, name: r.name }));
+      const members = (memRes.data || []).map((m) => ({
+        id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status, lastActive: m.last_active,
+      }));
 
-      this.setState({ phase: "ready", moduleDefs, perms, roles, cloneRoles, loadError: "" });
+      this.setState({ phase: "ready", moduleDefs, perms, roles, allRoles, cloneRoles, members, loadError: "" });
     } catch (e) {
       this.setState({ phase: "ready", loadError: (e && e.message) || "Could not load the permission list." });
       this.showToast("err", "Couldn't load: " + ((e && e.message) || "unknown error"));
@@ -371,8 +364,22 @@ class Component extends DCLogic {
     }
   }
 
-  changeMemberRole(id, role) {
+  async changeMemberRole(id, role) {
+    const prev = this.state.members;
     this.setState((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, role } : m)) }));
+    const { error } = await this._sb.from("team_members").update({ role_key: role || null }).eq("id", id);
+    if (error) { this.setState({ members: prev }); this.showToast("err", "Didn't save role — " + error.message); }
+    else { this.showToast("ok", "Role updated"); }
+  }
+
+  relTime(ts) {
+    if (!ts) return "Never signed in";
+    const d = new Date(ts); const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + " hr ago";
+    if (diff < 604800) return Math.floor(diff / 86400) + " d ago";
+    return d.toLocaleDateString();
   }
 
   async saveRole() {
@@ -432,9 +439,10 @@ class Component extends DCLogic {
     const perms = this.state.perms;
 
     const roleHeads = roles.map((r) => {
+      const n = this.state.members.filter((m) => m.role === r.key).length;
       return {
         ...r,
-        memberLabel: "0 members",
+        memberLabel: n === 0 ? "No members" : (n + (n === 1 ? " member" : " members")),
         headStyle: "width:200px;flex:none;padding:14px 18px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0",
       };
     });
@@ -460,15 +468,16 @@ class Component extends DCLogic {
       });
     });
 
-    // Team tab (mock)
-    const teamRoleOptions = this.state.mockRoles.map((r) => ({ key: r.key, name: r.name }));
+    // Team tab (real logins from team_members)
+    const teamRoleOptions = [{ key: "", name: "Unassigned" }].concat(this.state.allRoles.map((r) => ({ key: r.key, name: r.name })));
     const members = this.state.members.map((m) => {
-      const roleObj = this.state.mockRoles.find((r) => r.key === m.role);
+      const roleObj = this.state.allRoles.find((r) => r.key === m.role);
       const active = m.status === "active";
       return {
         ...m,
-        initial: m.name[0],
-        color: (roleObj && roleObj.color) || "#64748b",
+        initial: (m.name && m.name[0]) ? m.name[0].toUpperCase() : "?",
+        color: (roleObj && roleObj.color) || "#94a3b8",
+        lastActive: this.relTime(m.lastActive),
         onRoleChange: (e) => this.changeMemberRole(m.id, e.target.value),
         statusLabel: active ? "Active" : "Invited",
         statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (active
