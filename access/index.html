@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Abitzu · Roles & Permissions (Phase 0 preview)</title>
+<title>Abitzu · Roles &amp; Permissions</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -22,14 +23,40 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
 .msi{font-family:'Material Symbols Outlined';font-weight:normal;line-height:1;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;display:inline-block;vertical-align:middle}
 @keyframes ovIn{from{opacity:0}to{opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </helmet>
 <div style="min-height:100vh;display:flex;flex-direction:column;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#f3f6f5;color:#0f1b1a">
 
+  <!-- ===== LOADING ===== -->
+  <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;color:#7b8a88">
+        <span style="width:34px;height:34px;border-radius:50%;border:3px solid #e1e7e6;border-top-color:{{ accent }};animation:spin .8s linear infinite;display:inline-block"></span>
+        <span style="font-size:13px;font-weight:600">Loading access control…</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ACCESS DENIED ===== -->
+  <sc-if value="{{ isDenied }}">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+      <div style="width:440px;max-width:100%;background:#fff;border:1px solid #e7eceb;border-radius:16px;box-shadow:0 1px 3px rgba(15,27,26,.04);padding:30px 28px;text-align:center;animation:fadeUp .22s ease">
+        <span style="width:52px;height:52px;border-radius:14px;background:#f6f8f8;color:#9aa8a6;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><span class="msi" style="font-size:28px">lock</span></span>
+        <div style="font-size:18px;font-weight:800;letter-spacing:-.3px">Owner-only page</div>
+        <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:8px;line-height:1.55">{{ denyMsg }}</div>
+        <a href="/" style="display:inline-flex;align-items:center;gap:7px;margin-top:20px;height:38px;padding:0 18px;border-radius:9px;background:{{ accent }};color:#08332f;text-decoration:none;font-weight:700;font-size:13px"><span class="msi" style="font-size:18px">arrow_back</span>Back to the board</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== READY (the app) ===== -->
+  <sc-if value="{{ isReady }}">
+
   <!-- ===== TOP NAV ===== -->
   <nav style="flex:none;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#fff;border-bottom:1px solid #e7eceb;position:sticky;top:0;z-index:30">
     <div style="display:flex;align-items:center;gap:13px">
-      <div style="width:30px;height:30px;border-radius:9px;background:{{ accent }};display:flex;align-items:center;justify-content:center;color:#08332f;font-weight:800;font-size:16px;box-shadow:0 2px 6px rgba(90,206,196,.45)">A</div>
+      <a href="/" title="Back to the board" style="width:30px;height:30px;border-radius:9px;background:{{ accent }};display:flex;align-items:center;justify-content:center;color:#08332f;font-weight:800;font-size:16px;box-shadow:0 2px 6px rgba(90,206,196,.45);text-decoration:none">A</a>
       <div style="display:flex;flex-direction:column;line-height:1.1">
         <span style="font-weight:800;font-size:15px;letter-spacing:-.2px">Abitzu</span>
         <span style="font-size:11px;color:#7b8a88;font-weight:600">Roles &amp; Permissions</span>
@@ -61,24 +88,32 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
   <!-- ===== MATRIX VIEW ===== -->
   <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
     <div style="flex:1;padding:16px 26px 40px">
+
+      <!-- empty state: no roles yet (Owner is not shown as a column) -->
+      <sc-if value="{{ noRoles }}">
+        <div style="background:#fff;border:1px dashed #d5dedc;border-radius:16px;padding:48px 26px;text-align:center">
+          <span style="width:54px;height:54px;border-radius:14px;background:{{ accentSoft }};color:{{ accent }};display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><span class="msi" style="font-size:28px">badge</span></span>
+          <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">Create your first role</div>
+          <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.55">The <b>Owner</b> always has full access and isn't shown here. Add a role — like Sales Manager or Sales POC — then switch its permissions on or off.</div>
+          <button onClick="{{ newRole }}" style="margin-top:20px;height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 20px;border:none;border-radius:10px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:0 2px 8px rgba(90,206,196,.4)"><span class="msi" style="font-size:19px">add</span>New Role</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasRoles }}">
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
 
         <!-- column header -->
         <div style="display:flex;align-items:stretch;border-bottom:1px solid #e7eceb;background:#fbfdfc">
           <div style="width:300px;flex:none;padding:15px 20px;display:flex;align-items:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">Permission</div>
-          <sc-for list="{{ roles }}" as="r" hint-placeholder-count="5">
+          <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4">
             <div style="{{ r.headStyle }}">
               <div style="display:flex;align-items:center;gap:7px">
                 <span style="width:9px;height:9px;border-radius:50%;background:{{ r.color }}"></span>
                 <span style="font-size:13px;font-weight:800;letter-spacing:-.2px;color:#0f1b1a">{{ r.name }}</span>
               </div>
               <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
-                <div style="display:flex">
-                  <sc-for list="{{ r.avatars }}" as="a" hint-placeholder-count="2"><span title="{{ a.name }}" style="{{ a.style }}">{{ a.initial }}</span></sc-for>
-                </div>
                 <span style="font-size:11px;color:#9aa8a6;font-weight:700">{{ r.memberLabel }}</span>
               </div>
-              <sc-if value="{{ r.locked }}"><div style="display:flex;align-items:center;gap:4px;margin-top:7px;font-size:10px;color:#b6c4c1;font-weight:700"><span class="msi" style="font-size:12px">lock</span>Full access</div></sc-if>
             </div>
           </sc-for>
         </div>
@@ -97,7 +132,7 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
                 <span style="font-size:13px;font-weight:600;color:#0f1b1a">{{ row.label }}</span>
                 <span style="font-size:11px;color:#9aa8a6;font-weight:500">{{ row.hint }}</span>
               </div>
-              <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="5">
+              <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="4">
                 <div style="{{ c.wrapStyle }}">
                   <button onClick="{{ c.onToggle }}" title="{{ c.title }}" style="{{ c.btnStyle }}"><span class="msi" style="font-size:17px">{{ c.icon }}</span></button>
                 </div>
@@ -107,13 +142,16 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
         </sc-for>
 
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:11.5px;color:#9aa8a6;font-weight:500"><span class="msi" style="font-size:15px">info</span>The Owner role always retains full access and cannot be restricted.</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:11.5px;color:#9aa8a6;font-weight:500"><span class="msi" style="font-size:15px">info</span>The Owner always retains full access and cannot be restricted — that's why it isn't listed here.</div>
+      </sc-if>
+
     </div>
   </sc-if>
 
   <!-- ===== MEMBERS VIEW ===== -->
   <sc-if value="{{ isMembers }}">
     <div style="flex:1;padding:16px 26px 40px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">preview</span>Preview — team members aren't linked to real logins yet. This tab becomes live in a later step.</div>
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
         <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
           <span style="flex:1">Member</span>
@@ -132,7 +170,7 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
             </div>
             <div style="width:210px;flex:none">
               <select value="{{ m.role }}" onChange="{{ m.onRoleChange }}" style="height:34px;width:186px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
-                <sc-for list="{{ roleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+                <sc-for list="{{ teamRoleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
               </select>
             </div>
             <div style="width:150px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ m.lastActive }}</div>
@@ -152,25 +190,34 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
         <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
           <div style="display:flex;align-items:center;gap:10px">
             <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">badge</span></span>
-            <div><div style="font-size:16px;font-weight:800">New Role</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Starts with no permissions — configure in the matrix</div></div>
+            <div><div style="font-size:16px;font-weight:800">New Role</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Starts blank unless you clone another role</div></div>
           </div>
           <button onClick="{{ closeRoleModal }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
         </div>
         <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
-          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Role name</span><input value="{{ draftName }}" onInput="{{ onDraftName }}" placeholder="e.g. Regional Manager" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Role name</span><input value="{{ draftName }}" onInput="{{ onDraftName }}" placeholder="e.g. Sales Manager" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
           <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Clone permissions from</span>
             <select value="{{ draftClone }}" onChange="{{ onDraftClone }}" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none">
               <option value="">Start blank</option>
-              <sc-for list="{{ roleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+              <sc-for list="{{ cloneRoleOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
             </select>
           </label>
           <sc-if value="{{ draftError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ draftError }}</div></sc-if>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
           <button onClick="{{ closeRoleModal }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
-          <button onClick="{{ saveRole }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">add</span>Create Role</button>
+          <button onClick="{{ saveRole }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;{{ savingStyle }}" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">{{ saveIcon }}</span>{{ saveLabel }}</button>
         </div>
       </div>
+    </div>
+  </sc-if>
+
+  </sc-if><!-- /isReady -->
+
+  <!-- ===== TOAST ===== -->
+  <sc-if value="{{ toast }}">
+    <div style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(15,27,26,.22);animation:fadeUp .2s ease;{{ toastStyle }}">
+      <span class="msi" style="font-size:18px">{{ toastIcon }}</span>{{ toastMsg }}
     </div>
   </sc-if>
 
@@ -181,186 +228,290 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
   &quot;accentColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#5acec4&quot;, &quot;tsType&quot;: &quot;string&quot; }
 }">
 /*
-  Phase 0 — static preview of the Roles & Permissions design. In-memory only:
-  toggles, role changes and New Role work on screen but persist nothing and
-  enforce nothing yet. We wire this to Supabase + real enforcement in later phases.
+  Phase 1b — Roles & Permissions, wired to Supabase.
+  - Owner-only: gated on the signed-in session (abitzu.claude@gmail.com).
+  - Permissions matrix loads from / saves to public.roles, permissions,
+    role_permissions. Owner is never shown as a column (always full access).
+  - New Role creates a real role. Team tab is still preview-only mock data.
+  Enforcement on the live board (hide/disable) + RLS on leads come in later phases.
 */
+const SB_URL = "https://gkxgnxskrkonobcbtmjs.supabase.co";
+const SB_KEY = "sb_publishable_W9smHDgcxHl89L-e153obA_7FKNkrku";
+const OWNER_EMAIL = "abitzu.claude@gmail.com";
+const MODULE_ICON = {
+  "Board & Leads": "groups",
+  "Lead details — edit by section": "fact_check",
+  "Pipeline": "view_kanban",
+  "Analytics": "bar_chart_4_bars",
+};
+const ROLE_PALETTE = ["#6366f1", "#0ea5e9", "#22a06b", "#d946a6", "#f59e0b", "#0891b2", "#7c3aed", "#e11d48"];
+
 class Component extends DCLogic {
   constructor(props) {
     super(props);
     this.state = {
-      view: 'matrix',
-      roles: [
-        { key: 'owner',    name: 'Owner',         color: '#0f1b1a', locked: true },
-        { key: 'manager',  name: 'Sales Manager', color: '#6366f1', locked: false },
-        { key: 'poc',      name: 'Sales POC',      color: '#0ea5e9', locked: false },
-        { key: 'onboard',  name: 'Onboarding',     color: '#22a06b', locked: false },
-        { key: 'viewer',   name: 'Viewer',         color: '#94a3b8', locked: false },
-      ],
+      phase: "loading",          // loading | denied | ready
+      denyMsg: "",
+      view: "matrix",
+      moduleDefs: [],            // [{ module, icon, items:[{id,label,hint}] }]
+      roles: [],                 // non-owner roles (columns): [{ key, name, color }]
+      perms: {},                 // { roleKey: { permId: bool } }
+      cloneRoles: [],            // all roles incl Owner, for the clone dropdown
+      loadError: "",
+      // Team tab — cosmetic mock until real logins are wired
       members: [
-        { id: 'u1', name: 'Anuj',   email: 'anuj@abitzu.in',   role: 'owner',   lastActive: 'Just now',   status: 'active' },
-        { id: 'u2', name: 'Chhavi', email: 'chhavi@abitzu.in', role: 'manager', lastActive: '12 min ago', status: 'active' },
-        { id: 'u3', name: 'Rupesh', email: 'rupesh@abitzu.in', role: 'poc',     lastActive: '1 hr ago',   status: 'active' },
-        { id: 'u4', name: 'Vipul',  email: 'vipul@abitzu.in',  role: 'poc',     lastActive: '3 hrs ago',  status: 'active' },
-        { id: 'u5', name: 'Hitesh', email: 'hitesh@abitzu.in', role: 'onboard', lastActive: 'Yesterday',  status: 'invited' },
+        { id: "u1", name: "Anuj",   email: "anuj@abitzu.in",   role: "owner",   lastActive: "Just now",   status: "active" },
+        { id: "u2", name: "Chhavi", email: "chhavi@abitzu.in", role: "manager", lastActive: "12 min ago", status: "active" },
+        { id: "u3", name: "Rupesh", email: "rupesh@abitzu.in", role: "poc",     lastActive: "1 hr ago",   status: "active" },
+        { id: "u4", name: "Vipul",  email: "vipul@abitzu.in",  role: "poc",     lastActive: "3 hrs ago",  status: "active" },
+        { id: "u5", name: "Hitesh", email: "hitesh@abitzu.in", role: "onboard", lastActive: "Yesterday",  status: "invited" },
       ],
-      perms: this.seedPerms(),
+      mockRoles: [
+        { key: "owner",   name: "Owner",         color: "#0f1b1a" },
+        { key: "manager", name: "Sales Manager", color: "#6366f1" },
+        { key: "poc",     name: "Sales POC",     color: "#0ea5e9" },
+        { key: "onboard", name: "Onboarding",    color: "#22a06b" },
+        { key: "viewer",  name: "Viewer",        color: "#94a3b8" },
+      ],
       roleModalOpen: false,
-      draftName: '', draftClone: '', draftError: '',
-      newCounter: 0,
+      draftName: "", draftClone: "", draftError: "", saving: false,
+      toast: null,
     };
   }
 
-  // Permissions map to the real Abitzu board. Editing is split by the lead-card section headings.
-  permDefs() {
-    return [
-      { module: 'Board & Leads', icon: 'groups', items: [
-        { id: 'lead_view',     label: 'View board & leads',   hint: 'Open the Kanban board and lead cards' },
-        { id: 'lead_view_all', label: "View all POCs' leads", hint: "See everyone's leads, not just their own" },
-        { id: 'lead_create',   label: 'Create lead',          hint: 'Add a new lead via the New Lead form' },
-        { id: 'lead_priority', label: 'Change priority',      hint: 'Set Hot / Warm / Cold' },
-        { id: 'lead_reassign', label: 'Reassign POC',         hint: "Change a lead's assigned salesperson" },
-        { id: 'lead_source',   label: 'Change lead source',   hint: 'Edit where the lead came from' },
-      ]},
-      { module: 'Lead details — edit by section', icon: 'fact_check', items: [
-        { id: 'edit_followup',      label: 'Edit Follow-up',          hint: 'The next follow-up date & time' },
-        { id: 'edit_client',        label: 'Edit Client Information',  hint: 'Phone, email, address, city, website, Instagram' },
-        { id: 'edit_qualification', label: 'Edit Qualification',      hint: 'Why looking, software, service categories, budget, etc.' },
-        { id: 'edit_demo_info',     label: 'Edit Demo Information',   hint: 'Demo date, time, Meet link, conducted by, status' },
-        { id: 'edit_demo_feedback', label: 'Edit Demo Feedback',     hint: 'Requirements, pain points, plan, probability, revenue' },
-        { id: 'add_followup',       label: 'Add follow-up',           hint: 'Log a follow-up note in the history timeline' },
-      ]},
-      { module: 'Pipeline', icon: 'view_kanban', items: [
-        { id: 'pipeline_move', label: 'Move & archive leads', hint: 'Move leads between any columns, incl. Lost / Junk / archive' },
-      ]},
-      { module: 'Analytics', icon: 'bar_chart_4_bars', items: [
-        { id: 'ana_view', label: 'View analytics', hint: 'Funnel, sources, salesperson, monthly closures' },
-      ]},
-    ];
-  }
-  allPermIds() { return this.permDefs().flatMap(m => m.items.map(i => i.id)); }
-
-  seedPerms() {
-    const ids = this.allPermIds();
-    const on = (list) => { const o = {}; ids.forEach(id => o[id] = list.includes(id)); return o; };
-    const all = () => { const o = {}; ids.forEach(id => o[id] = true); return o; };
-    return {
-      owner: all(),
-      manager: on(['lead_view','lead_view_all','lead_create','lead_priority','lead_reassign','lead_source','edit_followup','edit_client','edit_qualification','edit_demo_info','edit_demo_feedback','add_followup','pipeline_move','ana_view']),
-      poc: on(['lead_view','lead_create','lead_priority','lead_source','edit_followup','edit_client','edit_qualification','edit_demo_info','edit_demo_feedback','add_followup','pipeline_move','ana_view']),
-      onboard: on(['lead_view','lead_view_all','edit_client','edit_qualification','add_followup','ana_view']),
-      viewer: on(['lead_view','ana_view']),
-    };
+  // ---- Supabase ----
+  async ensureSb(tries) {
+    tries = tries || 0;
+    if (window.supabase && window.supabase.createClient) {
+      if (!this._sb) {
+        this._sb = window.__sb || window.supabase.createClient(SB_URL, SB_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+        });
+      }
+      return this._sb;
+    }
+    if (tries > 40) return null;
+    await new Promise((r) => setTimeout(r, 100));
+    return this.ensureSb(tries + 1);
   }
 
-  toggle(roleKey, permId) {
-    this.setState(s => {
-      const rp = { ...(s.perms[roleKey] || {}) };
-      rp[permId] = !rp[permId];
-      return { perms: { ...s.perms, [roleKey]: rp } };
-    });
+  async componentDidMount() {
+    const sb = await this.ensureSb();
+    if (!sb) { this.setState({ phase: "denied", denyMsg: "Couldn't reach the sign-in service. Reload the page, or open the board first." }); return; }
+    let email = null;
+    try {
+      const res = await sb.auth.getSession();
+      email = (res && res.data && res.data.session && res.data.session.user && res.data.session.user.email) || null;
+    } catch (e) {}
+    if (email !== OWNER_EMAIL) {
+      this.setState({
+        phase: "denied",
+        denyMsg: email
+          ? ("You're signed in as " + email + ". Managing roles & permissions is limited to the account owner.")
+          : "You're not signed in. Open the board, sign in as the owner, then come back.",
+      });
+      return;
+    }
+    await this.loadData();
   }
+
+  async loadData() {
+    const sb = this._sb;
+    try {
+      const [permsRes, rolesRes, rpRes] = await Promise.all([
+        sb.from("permissions").select("id,module,label,hint,position").order("position", { ascending: true }),
+        sb.from("roles").select("key,name,accent,locked,position").order("position", { ascending: true }),
+        sb.from("role_permissions").select("role_key,permission_id,allowed"),
+      ]);
+      if (permsRes.error) throw permsRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+      if (rpRes.error) throw rpRes.error;
+
+      const moduleDefs = [];
+      const byMod = {};
+      (permsRes.data || []).forEach((p) => {
+        if (!byMod[p.module]) { byMod[p.module] = { module: p.module, icon: MODULE_ICON[p.module] || "tune", items: [] }; moduleDefs.push(byMod[p.module]); }
+        byMod[p.module].items.push({ id: p.id, label: p.label, hint: p.hint });
+      });
+
+      const perms = {};
+      (rpRes.data || []).forEach((rp) => { (perms[rp.role_key] = perms[rp.role_key] || {})[rp.permission_id] = rp.allowed; });
+
+      const roles = (rolesRes.data || []).filter((r) => !r.locked).map((r, i) => ({
+        key: r.key, name: r.name, color: r.accent || ROLE_PALETTE[i % ROLE_PALETTE.length],
+      }));
+      const cloneRoles = (rolesRes.data || []).map((r) => ({ key: r.key, name: r.name }));
+
+      this.setState({ phase: "ready", moduleDefs, perms, roles, cloneRoles, loadError: "" });
+    } catch (e) {
+      this.setState({ phase: "ready", loadError: (e && e.message) || "Could not load the permission list." });
+      this.showToast("err", "Couldn't load: " + ((e && e.message) || "unknown error"));
+    }
+  }
+
+  allPermIds() { return this.state.moduleDefs.flatMap((m) => m.items.map((i) => i.id)); }
+
+  showToast(kind, msg) {
+    this.setState({ toast: { kind, msg } });
+    if (this._toastT) clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+
+  async toggle(roleKey, permId) {
+    const cur = !!(this.state.perms[roleKey] && this.state.perms[roleKey][permId]);
+    const next = !cur;
+    this.setState((s) => ({ perms: { ...s.perms, [roleKey]: { ...(s.perms[roleKey] || {}), [permId]: next } } }));
+    const { error } = await this._sb
+      .from("role_permissions")
+      .upsert({ role_key: roleKey, permission_id: permId, allowed: next }, { onConflict: "role_key,permission_id" });
+    if (error) {
+      this.setState((s) => ({ perms: { ...s.perms, [roleKey]: { ...(s.perms[roleKey] || {}), [permId]: cur } } }));
+      this.showToast("err", "Didn't save — " + error.message);
+    }
+  }
+
   changeMemberRole(id, role) {
-    this.setState(s => ({ members: s.members.map(m => m.id === id ? { ...m, role } : m) }));
+    this.setState((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, role } : m)) }));
   }
-  saveRole() {
-    const name = (this.state.draftName || '').trim();
-    if (!name) { this.setState({ draftError: 'Give the role a name.' }); return; }
-    this.setState(s => {
-      const n = s.newCounter + 1;
-      const key = 'role' + n;
-      const palette = ['#d946a6','#f59e0b','#0891b2','#7c3aed','#e11d48'];
-      const clone = s.draftClone && s.perms[s.draftClone] ? { ...s.perms[s.draftClone] } : {};
-      const rp = {}; this.allPermIds().forEach(id => rp[id] = !!clone[id]);
+
+  async saveRole() {
+    if (this.state.saving) return;
+    const name = (this.state.draftName || "").trim();
+    if (!name) { this.setState({ draftError: "Give the role a name." }); return; }
+    let key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+    if (!key) key = "role_" + Math.abs(this.hash(name));
+    if (key === "owner" || this.state.roles.some((r) => r.key === key)) {
+      this.setState({ draftError: "A role with a similar name already exists." }); return;
+    }
+    this.setState({ saving: true, draftError: "" });
+
+    const color = ROLE_PALETTE[this.state.roles.length % ROLE_PALETTE.length];
+    const position = 100 + this.state.roles.length * 10;
+    const insRole = await this._sb.from("roles").insert({ key, name, accent: color, position, locked: false });
+    if (insRole.error) {
+      const dup = /duplicate|unique/i.test(insRole.error.message);
+      this.setState({ saving: false, draftError: dup ? "That role already exists." : insRole.error.message });
+      return;
+    }
+
+    const clone = this.state.draftClone;
+    const rows = this.allPermIds().map((id) => ({
+      role_key: key, permission_id: id,
+      allowed: !!(clone && this.state.perms[clone] && this.state.perms[clone][id]),
+    }));
+    if (rows.length) {
+      const insRp = await this._sb.from("role_permissions").insert(rows);
+      if (insRp.error) { this.showToast("err", "Role added, but permissions didn't save — " + insRp.error.message); }
+    }
+
+    this.setState((s) => {
+      const perms = { ...s.perms }; perms[key] = {}; rows.forEach((r) => (perms[key][r.permission_id] = r.allowed));
       return {
-        roles: [...s.roles, { key, name, color: palette[n % palette.length], locked: false }],
-        perms: { ...s.perms, [key]: rp },
-        newCounter: n, roleModalOpen: false, draftName: '', draftClone: '', draftError: '',
+        roles: [...s.roles, { key, name, color }],
+        cloneRoles: [...s.cloneRoles, { key, name }],
+        perms, saving: false,
+        roleModalOpen: false, draftName: "", draftClone: "", draftError: "",
       };
     });
+    this.showToast("ok", "Role “" + name + "” created");
   }
 
-  colors() {
-    const accent = this.props.accentColor || '#5acec4';
-    return { accent, accentSoft: accent + '24' };
-  }
+  hash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h; }
+
+  colors() { const accent = this.props.accentColor || "#5acec4"; return { accent, accentSoft: accent + "24" }; }
   tab(active) {
-    return 'display:flex;align-items:center;gap:5px;height:30px;padding:0 13px;border:none;border-radius:7px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;'
-      + (active ? 'background:#fff;color:#0f1b1a;box-shadow:0 1px 3px rgba(15,27,26,.1)' : 'background:transparent;color:#7b8a88');
+    return "display:flex;align-items:center;gap:5px;height:30px;padding:0 13px;border:none;border-radius:7px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;"
+      + (active ? "background:#fff;color:#0f1b1a;box-shadow:0 1px 3px rgba(15,27,26,.1)" : "background:transparent;color:#7b8a88");
   }
 
   renderVals() {
     const C = this.colors();
+    const phase = this.state.phase;
     const roles = this.state.roles;
     const perms = this.state.perms;
 
-    const roleHeads = roles.map((r, i) => {
-      const mem = this.state.members.filter(m => m.role === r.key);
-      const avatars = mem.slice(0, 3).map(m => ({
-        name: m.name, initial: m.name[0],
-        style: 'width:22px;height:22px;border-radius:50%;background:' + r.color + ';color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fbfdfc;margin-left:-6px',
-      }));
-      if (avatars.length) avatars[0].style = avatars[0].style.replace('margin-left:-6px', 'margin-left:0');
+    const roleHeads = roles.map((r) => {
       return {
-        ...r, avatars,
-        memberLabel: mem.length === 0 ? 'No members' : (mem.length + (mem.length === 1 ? ' member' : ' members')),
-        headStyle: 'flex:1;padding:14px 12px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0' + (i === 0 ? '' : ''),
+        ...r,
+        memberLabel: "0 members",
+        headStyle: "flex:1;padding:14px 12px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0",
       };
     });
 
     const rows = [];
-    this.permDefs().forEach(mod => {
+    this.state.moduleDefs.forEach((mod) => {
       rows.push({ isModule: true, label: mod.module, icon: mod.icon });
-      mod.items.forEach(item => {
-        const cells = roles.map(r => {
+      mod.items.forEach((item) => {
+        const cells = roles.map((r) => {
           const on = !!(perms[r.key] && perms[r.key][item.id]);
-          const locked = r.locked;
-          const base = 'width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,transform .1s;border:1px solid ';
-          let btnStyle;
-          if (on) btnStyle = base + (locked ? '#e7eceb' : 'transparent') + ';background:' + C.accentSoft + ';color:' + C.accent + ';' + (locked ? 'cursor:not-allowed;opacity:.7' : 'cursor:pointer');
-          else btnStyle = base + '#eef2f1;background:#f6f8f8;color:#c0ccca;' + (locked ? 'cursor:not-allowed;opacity:.7' : 'cursor:pointer');
+          const base = "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,transform .1s;border:1px solid ;cursor:pointer";
+          const btnStyle = on
+            ? "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid transparent;background:" + C.accentSoft + ";color:" + C.accent + ";cursor:pointer"
+            : "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid #eef2f1;background:#f6f8f8;color:#c0ccca;cursor:pointer";
           return {
-            wrapStyle: 'flex:1;display:flex;align-items:center;justify-content:center;padding:9px 12px;border-left:1px solid #f3f6f5',
-            btnStyle, icon: on ? 'check' : 'remove',
-            title: (locked ? 'Owner — always allowed' : (on ? 'Allowed — click to deny' : 'Denied — click to allow')),
-            onToggle: locked ? (() => {}) : (() => this.toggle(r.key, item.id)),
+            wrapStyle: "flex:1;display:flex;align-items:center;justify-content:center;padding:9px 12px;border-left:1px solid #f3f6f5",
+            btnStyle, icon: on ? "check" : "remove",
+            title: on ? "Allowed — click to deny" : "Denied — click to allow",
+            onToggle: (() => this.toggle(r.key, item.id)),
           };
         });
         rows.push({ isPerm: true, label: item.label, hint: item.hint, cells });
       });
     });
 
-    const roleOptions = roles.map(r => ({ key: r.key, name: r.name }));
-    const members = this.state.members.map(m => {
-      const roleObj = roles.find(r => r.key === m.role);
-      const active = m.status === 'active';
+    // Team tab (mock)
+    const teamRoleOptions = this.state.mockRoles.map((r) => ({ key: r.key, name: r.name }));
+    const members = this.state.members.map((m) => {
+      const roleObj = this.state.mockRoles.find((r) => r.key === m.role);
+      const active = m.status === "active";
       return {
         ...m,
         initial: m.name[0],
-        color: (roleObj && roleObj.color) || '#64748b',
+        color: (roleObj && roleObj.color) || "#64748b",
         onRoleChange: (e) => this.changeMemberRole(m.id, e.target.value),
-        statusLabel: active ? 'Active' : 'Invited',
-        statusStyle: 'font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;' + (active
-          ? 'color:#15803d;background:#22a06b1a' : 'color:#b45309;background:#f59e0b1c'),
+        statusLabel: active ? "Active" : "Invited",
+        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (active
+          ? "color:#15803d;background:#22a06b1a" : "color:#b45309;background:#f59e0b1c"),
       };
     });
 
+    const toast = this.state.toast;
+
     return {
       accent: C.accent, accentSoft: C.accentSoft,
-      isMatrix: this.state.view === 'matrix', isMembers: this.state.view === 'members',
-      setMatrix: () => this.setState({ view: 'matrix' }),
-      setMembers: () => this.setState({ view: 'members' }),
-      matrixTab: this.tab(this.state.view === 'matrix'),
-      membersTab: this.tab(this.state.view === 'members'),
-      roles: roleHeads, rows, members, roleOptions,
-      newRole: () => this.setState({ roleModalOpen: true, draftName: '', draftClone: '', draftError: '' }),
+      isLoading: phase === "loading",
+      isDenied: phase === "denied",
+      isReady: phase === "ready",
+      denyMsg: this.state.denyMsg,
+
+      isMatrix: this.state.view === "matrix",
+      isMembers: this.state.view === "members",
+      hasRoles: roles.length > 0,
+      noRoles: roles.length === 0,
+      setMatrix: () => this.setState({ view: "matrix" }),
+      setMembers: () => this.setState({ view: "members" }),
+      matrixTab: this.tab(this.state.view === "matrix"),
+      membersTab: this.tab(this.state.view === "members"),
+
+      roles: roleHeads, rows, members, teamRoleOptions,
+      cloneRoleOptions: this.state.cloneRoles,
+
+      newRole: () => this.setState({ roleModalOpen: true, draftName: "", draftClone: "", draftError: "" }),
       roleModalOpen: this.state.roleModalOpen,
       closeRoleModal: () => this.setState({ roleModalOpen: false }),
       stopProp: (e) => e.stopPropagation(),
       draftName: this.state.draftName, draftClone: this.state.draftClone, draftError: this.state.draftError,
-      onDraftName: (e) => this.setState({ draftName: e.target.value }),
+      onDraftName: (e) => this.setState({ draftName: e.target.value, draftError: "" }),
       onDraftClone: (e) => this.setState({ draftClone: e.target.value }),
       saveRole: () => this.saveRole(),
+      saveLabel: this.state.saving ? "Creating…" : "Create Role",
+      saveIcon: this.state.saving ? "hourglass_empty" : "add",
+      savingStyle: this.state.saving ? "opacity:.7;pointer-events:none" : "",
+
+      toast: !!toast,
+      toastMsg: toast ? toast.msg : "",
+      toastIcon: toast ? (toast.kind === "ok" ? "check_circle" : "error") : "",
+      toastStyle: toast ? (toast.kind === "ok" ? "background:#0f1b1a;color:#fff" : "background:#7f1d1d;color:#fff") : "",
     };
   }
 }
