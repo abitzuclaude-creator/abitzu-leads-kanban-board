@@ -100,6 +100,27 @@ to `main` is the single irreversible "go live" step and always needs approval.
   opening a PR to `main` (for the preview) is expected; **never merge to `main` (go
   live) without the user's explicit approval.** See "Delivery workflow" above.
 
+## Roles & Permissions / access control (IN PROGRESS — keep this complete)
+An admin-only, role-based access-control system is being built from the
+`Roles & Permissions.dc.html` design (in the user's Claude Design project). Shape:
+- **Data model:** `roles`, `permissions`, `role_permissions` (the matrix),
+  `team_members` (login → role). Supabase-ready, snake_case.
+- **Screen:** an admin-only "Access control" page with two tabs — **Permissions**
+  (a role × permission toggle matrix) and **Team** (members list with a role
+  dropdown + status). Reached via an entry point only Admins can see.
+- **Roles:** exactly ONE **Administrator** role — always full access, not editable,
+  and NOT shown as a column in the matrix. All other roles are created by the user
+  via the **New Role** button (nothing else pre-seeded).
+- **Enforcement is three layers:** (1) the screen sets permissions, (2) the app
+  hides/disables actions per the current user's role, (3) Supabase RLS enforces it
+  for real at the DB. Only layer 3 is true security.
+
+**STANDING RULE — when you build ANY new user-facing feature or action, you MUST
+also wire its permission into this system:** define the permission (in the matrix /
+`permDefs`), gate the feature by it in the app, and enforce it at the DB (RLS) if it
+touches data. A new action with no matching permission is an access-control gap —
+access control must always stay complete.
+
 ## Known quirks (cleanup candidates, not blockers)
 - **Stage order** differs between code and DB: the board's `stageDefs()` lists
   `called_no_answer` *before* `junk`, while the `pipeline_stages` table has `junk`
