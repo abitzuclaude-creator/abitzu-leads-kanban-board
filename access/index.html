@@ -50,10 +50,12 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
       <div style="font-size:22px;font-weight:800;letter-spacing:-.5px">Access control</div>
       <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:3px;max-width:620px;line-height:1.5">Define what each job role can see and do across the pipeline. Changes apply to every team member assigned that role.</div>
     </div>
+    <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
     <div style="display:flex;gap:9px;align-items:center">
       <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8a88;font-weight:600"><span style="width:16px;height:16px;border-radius:5px;background:{{ accentSoft }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:12px;color:{{ accent }}">check</span></span>Allowed</div>
       <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8a88;font-weight:600"><span style="width:16px;height:16px;border-radius:5px;background:#eef2f1;display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:12px;color:#c0ccca">remove</span></span>Denied</div>
     </div>
+    </sc-if>
   </div>
 
   <!-- ===== MATRIX VIEW ===== -->
