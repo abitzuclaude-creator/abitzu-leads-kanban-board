@@ -435,7 +435,7 @@ class Component extends DCLogic {
       return {
         ...r,
         memberLabel: "0 members",
-        headStyle: "flex:1;padding:14px 12px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0",
+        headStyle: "width:200px;flex:none;padding:14px 18px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0",
       };
     });
 
@@ -445,12 +445,12 @@ class Component extends DCLogic {
       mod.items.forEach((item) => {
         const cells = roles.map((r) => {
           const on = !!(perms[r.key] && perms[r.key][item.id]);
-          const base = "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,transform .1s;border:1px solid ;cursor:pointer";
+          const base = "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,transform .1s;border:1px solid ;cursor:pointer";
           const btnStyle = on
-            ? "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid transparent;background:" + C.accentSoft + ";color:" + C.accent + ";cursor:pointer"
-            : "width:100%;max-width:120px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid #eef2f1;background:#f6f8f8;color:#c0ccca;cursor:pointer";
+            ? "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid transparent;background:" + C.accentSoft + ";color:" + C.accent + ";cursor:pointer"
+            : "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid #eef2f1;background:#f6f8f8;color:#c0ccca;cursor:pointer";
           return {
-            wrapStyle: "flex:1;display:flex;align-items:center;justify-content:center;padding:9px 12px;border-left:1px solid #f3f6f5",
+            wrapStyle: "width:200px;flex:none;display:flex;align-items:center;justify-content:flex-start;padding:9px 18px;border-left:1px solid #f3f6f5",
             btnStyle, icon: on ? "check" : "remove",
             title: on ? "Allowed — click to deny" : "Denied — click to allow",
             onToggle: (() => this.toggle(r.key, item.id)),
