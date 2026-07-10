@@ -209,41 +209,30 @@ class Component extends DCLogic {
     };
   }
 
-  // Every permission below maps to a real action/feature in the live Abitzu board.
+  // Permissions map to the real Abitzu board. Editing is split by the lead-card section headings.
   permDefs() {
     return [
       { module: 'Board & Leads', icon: 'groups', items: [
         { id: 'lead_view',     label: 'View board & leads',   hint: 'Open the Kanban board and lead cards' },
         { id: 'lead_view_all', label: "View all POCs' leads", hint: "See everyone's leads, not just their own" },
         { id: 'lead_create',   label: 'Create lead',          hint: 'Add a new lead via the New Lead form' },
-        { id: 'lead_edit',     label: 'Edit lead details',    hint: 'Client info & qualification fields' },
         { id: 'lead_priority', label: 'Change priority',      hint: 'Set Hot / Warm / Cold' },
         { id: 'lead_reassign', label: 'Reassign POC',         hint: "Change a lead's assigned salesperson" },
         { id: 'lead_source',   label: 'Change lead source',   hint: 'Edit where the lead came from' },
       ]},
+      { module: 'Lead details — edit by section', icon: 'fact_check', items: [
+        { id: 'edit_followup',      label: 'Edit Follow-up',          hint: 'The next follow-up date & time' },
+        { id: 'edit_client',        label: 'Edit Client Information',  hint: 'Phone, email, address, city, website, Instagram' },
+        { id: 'edit_qualification', label: 'Edit Qualification',      hint: 'Why looking, software, service categories, budget, etc.' },
+        { id: 'edit_demo_info',     label: 'Edit Demo Information',   hint: 'Demo date, time, Meet link, conducted by, status' },
+        { id: 'edit_demo_feedback', label: 'Edit Demo Feedback',     hint: 'Requirements, pain points, plan, probability, revenue' },
+        { id: 'add_followup',       label: 'Add follow-up',           hint: 'Log a follow-up note in the history timeline' },
+      ]},
       { module: 'Pipeline', icon: 'view_kanban', items: [
-        { id: 'stage_move',    label: 'Move stage',           hint: 'Move leads between columns' },
-        { id: 'stage_archive', label: 'Archive lead',         hint: 'Move to Lost / Junk / Called No Answer / Called Unqualified' },
-      ]},
-      { module: 'Demos', icon: 'videocam', items: [
-        { id: 'demo_schedule', label: 'Schedule demo',        hint: 'Book a demo and move to Demo Scheduled' },
-        { id: 'demo_edit',     label: 'Edit demo info',       hint: 'Date, time, Meet link, conducted by, status' },
-        { id: 'demo_feedback', label: 'Edit demo feedback',   hint: 'Requirements, pain points, plan, probability, revenue' },
-      ]},
-      { module: 'Communication', icon: 'forum', items: [
-        { id: 'comm_contact',  label: 'Call / WhatsApp / Email', hint: 'Reach out from the card or drawer' },
-        { id: 'comm_note',     label: 'Add follow-up note',   hint: 'Log activity in the history timeline' },
-        { id: 'comm_followup', label: 'Set next follow-up',   hint: 'Schedule the next follow-up date & time' },
+        { id: 'pipeline_move', label: 'Move & archive leads', hint: 'Move leads between any columns, incl. Lost / Junk / archive' },
       ]},
       { module: 'Analytics', icon: 'bar_chart_4_bars', items: [
-        { id: 'ana_view',      label: 'View analytics',       hint: 'Funnel, sources, salesperson, monthly closures' },
-        { id: 'ana_revenue',   label: 'View revenue figures', hint: 'Expected-revenue KPI and revenue analytics' },
-      ]},
-      { module: 'Administration', icon: 'admin_panel_settings', items: [
-        { id: 'adm_members',   label: 'Manage team members',  hint: 'Invite, remove, assign roles' },
-        { id: 'adm_roles',     label: 'Manage roles',         hint: 'Edit this permission matrix' },
-        { id: 'adm_pocs',      label: 'Manage POC list',      hint: 'Add or remove salesperson (POC) options' },
-        { id: 'adm_pipeline',  label: 'Manage pipeline stages', hint: 'Edit columns and stage automation' },
+        { id: 'ana_view', label: 'View analytics', hint: 'Funnel, sources, salesperson, monthly closures' },
       ]},
     ];
   }
@@ -255,9 +244,9 @@ class Component extends DCLogic {
     const all = () => { const o = {}; ids.forEach(id => o[id] = true); return o; };
     return {
       owner: all(),
-      manager: on(['lead_view','lead_view_all','lead_create','lead_edit','lead_priority','lead_reassign','lead_source','stage_move','stage_archive','demo_schedule','demo_edit','demo_feedback','comm_contact','comm_note','comm_followup','ana_view','ana_revenue','adm_members']),
-      poc: on(['lead_view','lead_create','lead_edit','lead_priority','lead_source','stage_move','demo_schedule','demo_edit','demo_feedback','comm_contact','comm_note','comm_followup','ana_view']),
-      onboard: on(['lead_view','lead_view_all','lead_edit','comm_contact','comm_note','comm_followup','ana_view']),
+      manager: on(['lead_view','lead_view_all','lead_create','lead_priority','lead_reassign','lead_source','edit_followup','edit_client','edit_qualification','edit_demo_info','edit_demo_feedback','add_followup','pipeline_move','ana_view']),
+      poc: on(['lead_view','lead_create','lead_priority','lead_source','edit_followup','edit_client','edit_qualification','edit_demo_info','edit_demo_feedback','add_followup','pipeline_move','ana_view']),
+      onboard: on(['lead_view','lead_view_all','edit_client','edit_qualification','add_followup','ana_view']),
       viewer: on(['lead_view','ana_view']),
     };
   }
