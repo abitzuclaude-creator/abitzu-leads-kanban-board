@@ -137,9 +137,18 @@ created (RLS on; reads = any authenticated, writes = owners only via
 `public.is_access_owner()`, a TEMP email allowlist: chhavi@/anuj@/abitzu.claude@
 — replace with a team_members→locked-role lookup once real logins are wired).
 Seeded: Owner role (locked) + the 14 permissions + Owner=all. `team_members` empty
-(Team tab still shows front-end mock names by user's choice). **Next = Phase 1b:**
-put a login on `/access/` and wire the toggles/New Role to read+write these tables.
-Then Phase 2 (board enforcement, hybrid hide/disable) and Phase 3 (RLS on `leads`).
+(Team tab still shows front-end mock names by user's choice). **Phase 1b DONE** —
+`/access/` is wired to Supabase: owner-gated on the signed-in session (only
+abitzu.claude@gmail.com; others get a denied panel — NO separate login form), the
+matrix loads from the tables and toggles save via `role_permissions` upsert, New
+Role inserts a real role + its permission rows. Owner is hidden from the matrix;
+until a non-owner role exists it shows a "Create your first role" empty state. The
+live board (`index.html` bundle) now has an **owner-only "Access" header button**
+(sc-if `isOwnerUser` === abitzu.claude@gmail.com) linking to `/access/`. Team tab
+still mock (labelled "Preview"). **Next = Phase 2:** enforce permissions on the
+board (hybrid hide/disable) for the current user's role; then Phase 3 (RLS on
+`leads`). NOTE: page access is currently owner-email only; `role_permissions` write
+RLS still allows all 3 owner emails (backstop) — revisit when wiring real team logins.
 
 **STANDING RULE — when you build ANY new user-facing feature or action, you MUST
 also wire its permission into this system:** define the permission (in the matrix /
