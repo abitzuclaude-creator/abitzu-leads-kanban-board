@@ -145,10 +145,21 @@ Role inserts a real role + its permission rows. Owner is hidden from the matrix;
 until a non-owner role exists it shows a "Create your first role" empty state. The
 live board (`index.html` bundle) now has an **owner-only "Access" header button**
 (sc-if `isOwnerUser` === abitzu.claude@gmail.com) linking to `/access/`. Team tab
-still mock (labelled "Preview"). **Next = Phase 2:** enforce permissions on the
-board (hybrid hide/disable) for the current user's role; then Phase 3 (RLS on
-`leads`). NOTE: page access is currently owner-email only; `role_permissions` write
-RLS still allows all 3 owner emails (backstop) — revisit when wiring real team logins.
+still mock (labelled "Preview"). Board (`index.html` bundle) has an owner-only
+"Access" header button linking to `/access/`. **Phase 1c DONE** — Team tab is REAL:
+`team_members` seeded from the 7 auth.users logins (Abitzu Claude/Chhavi/Anuj =
+owner; Rupesh/Hitesh/Vipul/Sales = unassigned); the tab lists real logins with a
+role dropdown (Unassigned + real roles) that saves to `team_members.role_key`, real
+last-active + status, and matrix role headers now show real member counts.
+`team_members` has unique(user_id) + unique(lower(email)). **Next = Phase 2:**
+enforce permissions on the LIVE board — read the signed-in user's role via
+team_members → its role_permissions → apply the hybrid hide/disable (single Edit
+button unlocks only allowed lead-card sections). CONFIRM the exact gates with the
+user before changing board behavior. Then Phase 3 (RLS on `leads`, keyed off
+team_members role). NOTE: `role_permissions`/config write-RLS still uses the temp
+owner-email allowlist (chhavi@/anuj@/abitzu.claude@) — swap to a team_members
+locked-role lookup in Phase 3. New Supabase logins won't auto-appear in team_members
+(no trigger yet) — add one, or seed manually, when onboarding real teammates.
 
 **STANDING RULE — when you build ANY new user-facing feature or action, you MUST
 also wire its permission into this system:** define the permission (in the matrix /
