@@ -152,16 +152,19 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
   <!-- ===== MEMBERS VIEW ===== -->
   <sc-if value="{{ isMembers }}">
     <div style="flex:1;padding:16px 26px 40px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Roles come from the Permissions tab; changes save instantly.</div>
+
+      <!-- ---- Members (logins + roles) ---- -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Deactivate to pause access; remove to unlink a login from all roles.</div>
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
         <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
           <span style="flex:1">Member</span>
-          <span style="width:210px;flex:none">Role</span>
-          <span style="width:150px;flex:none">Last active</span>
-          <span style="width:90px;flex:none;text-align:right">Status</span>
+          <span style="width:200px;flex:none">Role</span>
+          <span style="width:130px;flex:none">Last active</span>
+          <span style="width:96px;flex:none">Status</span>
+          <span style="width:78px;flex:none;text-align:right">Actions</span>
         </div>
         <sc-for list="{{ members }}" as="m" hint-placeholder-count="5">
-          <div style="display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" style-hover="background:#fbfdfc">
+          <div style="{{ m.rowStyle }}" style-hover="background:#fbfdfc">
             <div style="flex:1;display:flex;align-items:center;gap:12px;min-width:0">
               <span style="width:38px;height:38px;border-radius:50%;background:{{ m.color }};color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ m.initial }}</span>
               <div style="min-width:0">
@@ -169,18 +172,53 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
                 <div style="font-size:11.5px;color:#9aa8a6;font-weight:500">{{ m.email }}</div>
               </div>
             </div>
-            <div style="width:210px;flex:none">
-              <select value="{{ m.role }}" onChange="{{ m.onRoleChange }}" style="height:34px;width:186px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
+            <div style="width:200px;flex:none">
+              <select value="{{ m.role }}" onChange="{{ m.onRoleChange }}" style="height:34px;width:180px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
                 <sc-for list="{{ teamRoleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
               </select>
             </div>
-            <div style="width:150px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ m.lastActive }}</div>
-            <div style="width:90px;flex:none;display:flex;justify-content:flex-end">
-              <span style="{{ m.statusStyle }}">{{ m.statusLabel }}</span>
+            <div style="width:130px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ m.lastActive }}</div>
+            <div style="width:96px;flex:none;display:flex"><span style="{{ m.statusStyle }}">{{ m.statusLabel }}</span></div>
+            <div style="width:78px;flex:none;display:flex;justify-content:flex-end;gap:5px">
+              <button onClick="{{ m.onToggleActive }}" title="{{ m.actToggleTitle }}" style="width:30px;height:30px;border:1px solid #e7eceb;border-radius:8px;background:#fff;color:#7b8a88;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4;color:#0f1b1a"><span class="msi" style="font-size:16px">{{ m.actToggleIcon }}</span></button>
+              <button onClick="{{ m.onRemove }}" title="Remove from team" style="width:30px;height:30px;border:1px solid #f2dada;border-radius:8px;background:#fff;color:#d9534f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#fdecec"><span class="msi" style="font-size:16px">delete</span></button>
             </div>
           </div>
         </sc-for>
       </div>
+
+      <!-- ---- Points of contact ---- -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:30px 0 12px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">contacts</span>Points of contact are the salespeople shown on lead cards. Attach one to a login to tie their leads to that account.</div>
+        <button onClick="{{ openPocModal }}" style="height:34px;display:flex;align-items:center;gap:6px;padding:0 13px;border:1px solid #e1e7e6;border-radius:9px;background:#fff;color:#0f1b1a;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f0f5f4"><span class="msi" style="font-size:17px">add</span>Add POC</button>
+      </div>
+      <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
+        <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
+          <span style="flex:1">Point of contact</span>
+          <span style="width:150px;flex:none">Leads</span>
+          <span style="width:300px;flex:none">Attached login</span>
+          <span style="width:60px;flex:none;text-align:right">Remove</span>
+        </div>
+        <sc-if value="{{ noPocs }}"><div style="padding:26px 20px;text-align:center;font-size:12.5px;color:#9aa8a6;font-weight:600">No POCs yet. Add one, or they appear here from your leads.</div></sc-if>
+        <sc-for list="{{ pocs }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" style-hover="background:#fbfdfc">
+            <div style="flex:1;display:flex;align-items:center;gap:12px;min-width:0">
+              <span style="width:34px;height:34px;border-radius:9px;background:{{ p.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ p.initial }}</span>
+              <div style="font-size:13.5px;font-weight:700;color:#0f1b1a">{{ p.name }}</div>
+            </div>
+            <div style="width:150px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ p.leadsLabel }}</div>
+            <div style="width:300px;flex:none">
+              <select value="{{ p.attachValue }}" onChange="{{ p.onAttach }}" style="height:34px;width:280px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
+                <sc-for list="{{ pocAttachOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+              </select>
+            </div>
+            <div style="width:60px;flex:none;display:flex;justify-content:flex-end">
+              <button onClick="{{ p.onRemove }}" title="Remove POC" style="width:30px;height:30px;border:1px solid #f2dada;border-radius:8px;background:#fff;color:#d9534f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#fdecec"><span class="msi" style="font-size:16px">delete</span></button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
     </div>
   </sc-if>
 
@@ -208,6 +246,46 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
         <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
           <button onClick="{{ closeRoleModal }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
           <button onClick="{{ saveRole }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;{{ savingStyle }}" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">{{ saveIcon }}</span>{{ saveLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ADD POC MODAL ===== -->
+  <sc-if value="{{ pocModalOpen }}">
+    <div onClick="{{ closePocModal }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:420px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);display:flex;flex-direction:column;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">contacts</span></span>
+            <div><div style="font-size:16px;font-weight:800">Add point of contact</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Use the exact name that appears on lead cards</div></div>
+          </div>
+          <button onClick="{{ closePocModal }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">POC name</span><input value="{{ pocDraftName }}" onInput="{{ onPocDraftName }}" placeholder="e.g. Rajinder" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <sc-if value="{{ pocDraftError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ pocDraftError }}</div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closePocModal }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ savePoc }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">add</span>Add POC</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== CONFIRM MODAL ===== -->
+  <sc-if value="{{ confirmOpen }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:70;display:flex;align-items:flex-start;justify-content:center;padding:80px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:400px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);padding:22px;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:10px">
+          <span style="width:38px;height:38px;border-radius:11px;background:#fdecec;color:#d9534f;display:flex;align-items:center;justify-content:center;flex:none"><span class="msi" style="font-size:21px">warning</span></span>
+          <div style="font-size:16px;font-weight:800">{{ confirmTitle }}</div>
+        </div>
+        <div style="font-size:13px;color:#5d6e6c;font-weight:500;line-height:1.55;margin-bottom:18px">{{ confirmMsg }}</div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button onClick="{{ closeConfirm }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ confirmYes }}" style="height:38px;padding:0 18px;border:none;border-radius:9px;background:#d9534f;color:#fff;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.95)">{{ confirmLabel }}</button>
         </div>
       </div>
     </div>
@@ -261,8 +339,12 @@ class Component extends DCLogic {
       loadError: "",
       members: [],               // real team_members, loaded from Supabase
       allRoles: [],              // every role incl Owner (with colour), for lookups
+      pocs: [],                  // points of contact (names on lead cards)
+      pocCounts: {},             // { lowercased poc name: lead count }
       roleModalOpen: false,
       draftName: "", draftClone: "", draftError: "", saving: false,
+      pocModalOpen: false, pocDraftName: "", pocDraftError: "",
+      confirm: null,             // { title, msg, label, onYes }
       toast: null,
     };
   }
@@ -306,16 +388,24 @@ class Component extends DCLogic {
   async loadData() {
     const sb = this._sb;
     try {
-      const [permsRes, rolesRes, rpRes, memRes] = await Promise.all([
+      const [permsRes, rolesRes, rpRes, memRes, pocRes, leadRes] = await Promise.all([
         sb.from("permissions").select("id,module,label,hint,position").order("position", { ascending: true }),
         sb.from("roles").select("key,name,accent,locked,position").order("position", { ascending: true }),
         sb.from("role_permissions").select("role_key,permission_id,allowed"),
-        sb.from("team_members").select("id,name,email,role_key,status,last_active").order("name", { ascending: true }),
+        sb.from("team_members").select("id,name,email,role_key,status,last_active,deactivated").order("name", { ascending: true }),
+        sb.from("pocs").select("id,name,team_member_id,active,position").order("position", { ascending: true }),
+        sb.from("leads").select("assigned_poc"),
       ]);
       if (permsRes.error) throw permsRes.error;
       if (rolesRes.error) throw rolesRes.error;
       if (rpRes.error) throw rpRes.error;
       if (memRes.error) throw memRes.error;
+      if (pocRes.error) throw pocRes.error;
+      const pocCounts = {};
+      (leadRes && leadRes.data ? leadRes.data : []).forEach((l) => {
+        const k = (l.assigned_poc || "").trim().toLowerCase();
+        if (k) pocCounts[k] = (pocCounts[k] || 0) + 1;
+      });
 
       const moduleDefs = [];
       const byMod = {};
@@ -333,10 +423,11 @@ class Component extends DCLogic {
       const roles = allRoles.filter((r) => !r.locked);
       const cloneRoles = allRoles.map((r) => ({ key: r.key, name: r.name }));
       const members = (memRes.data || []).map((m) => ({
-        id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status, lastActive: m.last_active,
+        id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status, lastActive: m.last_active, deactivated: !!m.deactivated,
       }));
+      const pocs = (pocRes.data || []).map((p) => ({ id: p.id, name: p.name, memberId: p.team_member_id || "", active: p.active }));
 
-      this.setState({ phase: "ready", moduleDefs, perms, roles, allRoles, cloneRoles, members, loadError: "" });
+      this.setState({ phase: "ready", moduleDefs, perms, roles, allRoles, cloneRoles, members, pocs, pocCounts, loadError: "" });
     } catch (e) {
       this.setState({ phase: "ready", loadError: (e && e.message) || "Could not load the permission list." });
       this.showToast("err", "Couldn't load: " + ((e && e.message) || "unknown error"));
@@ -382,6 +473,77 @@ class Component extends DCLogic {
     return d.toLocaleDateString();
   }
 
+  async toggleMemberActive(id, deactivated) {
+    const prev = this.state.members;
+    this.setState((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, deactivated } : m)) }));
+    const { error } = await this._sb.from("team_members").update({ deactivated }).eq("id", id);
+    if (error) { this.setState({ members: prev }); this.showToast("err", "Didn't save — " + error.message); }
+    else { this.showToast("ok", deactivated ? "Member deactivated" : "Member reactivated"); }
+  }
+
+  askRemoveMember(m) {
+    this.setState({ confirm: {
+      title: "Remove " + m.name + "?",
+      msg: "Their login still exists, but it will be unlinked from any role and any attached POC. You can re-add them later.",
+      label: "Remove",
+      onYes: () => this.removeMember(m.id),
+    }});
+  }
+  async removeMember(id) {
+    const prevM = this.state.members, prevP = this.state.pocs;
+    this.setState((s) => ({
+      confirm: null,
+      members: s.members.filter((m) => m.id !== id),
+      pocs: s.pocs.map((p) => (p.memberId === id ? { ...p, memberId: "" } : p)),
+    }));
+    const { error } = await this._sb.from("team_members").delete().eq("id", id);
+    if (error) { this.setState({ members: prevM, pocs: prevP }); this.showToast("err", "Couldn't remove — " + error.message); }
+    else { this.showToast("ok", "Removed from team"); }
+  }
+
+  async changePocLogin(pocId, memberId) {
+    const prev = this.state.pocs;
+    this.setState((s) => ({ pocs: s.pocs.map((p) => (p.id === pocId ? { ...p, memberId } : p)) }));
+    const { error } = await this._sb.from("pocs").update({ team_member_id: memberId || null }).eq("id", pocId);
+    if (error) {
+      this.setState({ pocs: prev });
+      const dup = /duplicate|unique/i.test(error.message);
+      this.showToast("err", dup ? "That login is already attached to another POC." : ("Didn't save — " + error.message));
+    } else { this.showToast("ok", "Attachment updated"); }
+  }
+
+  askRemovePoc(p) {
+    const n = this.state.pocCounts[(p.name || "").toLowerCase()] || 0;
+    this.setState({ confirm: {
+      title: "Remove POC “" + p.name + "”?",
+      msg: n > 0 ? ("This POC is on " + n + " lead" + (n === 1 ? "" : "s") + ". Those leads keep the name, but it won't be a managed POC anymore.") : "This POC isn't on any leads.",
+      label: "Remove",
+      onYes: () => this.removePoc(p.id),
+    }});
+  }
+  async removePoc(id) {
+    const prev = this.state.pocs;
+    this.setState((s) => ({ confirm: null, pocs: s.pocs.filter((p) => p.id !== id) }));
+    const { error } = await this._sb.from("pocs").delete().eq("id", id);
+    if (error) { this.setState({ pocs: prev }); this.showToast("err", "Couldn't remove — " + error.message); }
+    else { this.showToast("ok", "POC removed"); }
+  }
+
+  async savePoc() {
+    const name = (this.state.pocDraftName || "").trim();
+    if (!name) { this.setState({ pocDraftError: "Enter a name." }); return; }
+    if (this.state.pocs.some((p) => p.name.toLowerCase() === name.toLowerCase())) { this.setState({ pocDraftError: "That POC already exists." }); return; }
+    const position = 10 + this.state.pocs.length * 10;
+    const { data, error } = await this._sb.from("pocs").insert({ name, position }).select("id").single();
+    if (error) { this.setState({ pocDraftError: /duplicate|unique/i.test(error.message) ? "That POC already exists." : error.message }); return; }
+    const newId = (data && data.id) || ("tmp_" + Math.abs(this.hash(name)));
+    this.setState((s) => ({
+      pocs: [...s.pocs, { id: newId, name, memberId: "", active: true }],
+      pocModalOpen: false, pocDraftName: "", pocDraftError: "",
+    }));
+    this.showToast("ok", "POC “" + name + "” added");
+  }
+
   async saveRole() {
     if (this.state.saving) return;
     const name = (this.state.draftName || "").trim();
@@ -425,6 +587,7 @@ class Component extends DCLogic {
   }
 
   hash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h; }
+  pocColor(name) { const pal = ["#0ea5e9", "#6366f1", "#22a06b", "#d946a6", "#f59e0b", "#0891b2", "#7c3aed", "#e11d48"]; return pal[Math.abs(this.hash(name || "")) % pal.length]; }
 
   colors() { const accent = this.props.accentColor || "#5acec4"; return { accent, accentSoft: accent + "24" }; }
   tab(active) {
@@ -473,18 +636,44 @@ class Component extends DCLogic {
     const members = this.state.members.map((m) => {
       const roleObj = this.state.allRoles.find((r) => r.key === m.role);
       const active = m.status === "active";
+      const dead = m.deactivated;
       return {
         ...m,
         initial: (m.name && m.name[0]) ? m.name[0].toUpperCase() : "?",
-        color: (roleObj && roleObj.color) || "#94a3b8",
+        color: dead ? "#b6c1bf" : ((roleObj && roleObj.color) || "#94a3b8"),
         lastActive: this.relTime(m.lastActive),
+        rowStyle: "display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" + (dead ? ";opacity:.55" : ""),
         onRoleChange: (e) => this.changeMemberRole(m.id, e.target.value),
-        statusLabel: active ? "Active" : "Invited",
-        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (active
-          ? "color:#15803d;background:#22a06b1a" : "color:#b45309;background:#f59e0b1c"),
+        onToggleActive: () => this.toggleMemberActive(m.id, !dead),
+        onRemove: () => this.askRemoveMember(m),
+        actToggleIcon: dead ? "restart_alt" : "block",
+        actToggleTitle: dead ? "Reactivate" : "Deactivate",
+        statusLabel: dead ? "Deactivated" : (active ? "Active" : "Invited"),
+        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (dead
+          ? "color:#6b7280;background:#9ca3af22" : (active
+          ? "color:#15803d;background:#22a06b1a" : "color:#b45309;background:#f59e0b1c")),
       };
     });
 
+    // Points of contact
+    const activeMembers = this.state.members.filter((m) => !m.deactivated);
+    const pocAttachOptions = [{ id: "", label: "Not linked" }].concat(
+      activeMembers.map((m) => ({ id: m.id, label: m.name + " · " + m.email }))
+    );
+    const pocs = this.state.pocs.map((p) => {
+      const n = this.state.pocCounts[(p.name || "").toLowerCase()] || 0;
+      return {
+        id: p.id, name: p.name,
+        initial: (p.name && p.name[0]) ? p.name[0].toUpperCase() : "?",
+        color: this.pocColor(p.name),
+        leadsLabel: n === 0 ? "No leads" : (n + (n === 1 ? " lead" : " leads")),
+        attachValue: p.memberId || "",
+        onAttach: (e) => this.changePocLogin(p.id, e.target.value),
+        onRemove: () => this.askRemovePoc(p),
+      };
+    });
+
+    const confirm = this.state.confirm;
     const toast = this.state.toast;
 
     return {
@@ -505,6 +694,21 @@ class Component extends DCLogic {
 
       roles: roleHeads, rows, members, teamRoleOptions,
       cloneRoleOptions: this.state.cloneRoles,
+
+      pocs, pocAttachOptions, noPocs: pocs.length === 0,
+      openPocModal: () => this.setState({ pocModalOpen: true, pocDraftName: "", pocDraftError: "" }),
+      closePocModal: () => this.setState({ pocModalOpen: false }),
+      pocModalOpen: this.state.pocModalOpen,
+      pocDraftName: this.state.pocDraftName, pocDraftError: this.state.pocDraftError,
+      onPocDraftName: (e) => this.setState({ pocDraftName: e.target.value, pocDraftError: "" }),
+      savePoc: () => this.savePoc(),
+
+      confirmOpen: !!confirm,
+      confirmTitle: confirm ? confirm.title : "",
+      confirmMsg: confirm ? confirm.msg : "",
+      confirmLabel: confirm ? confirm.label : "Confirm",
+      confirmYes: () => { const c = this.state.confirm; if (c && c.onYes) c.onYes(); },
+      closeConfirm: () => this.setState({ confirm: null }),
 
       newRole: () => this.setState({ roleModalOpen: true, draftName: "", draftClone: "", draftError: "" }),
       roleModalOpen: this.state.roleModalOpen,
