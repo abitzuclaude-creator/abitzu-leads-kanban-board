@@ -151,15 +151,30 @@ still mock (labelled "Preview"). Board (`index.html` bundle) has an owner-only
 owner; Rupesh/Hitesh/Vipul/Sales = unassigned); the tab lists real logins with a
 role dropdown (Unassigned + real roles) that saves to `team_members.role_key`, real
 last-active + status, and matrix role headers now show real member counts.
-`team_members` has unique(user_id) + unique(lower(email)). **Next = Phase 2:**
-enforce permissions on the LIVE board — read the signed-in user's role via
-team_members → its role_permissions → apply the hybrid hide/disable (single Edit
-button unlocks only allowed lead-card sections). CONFIRM the exact gates with the
-user before changing board behavior. Then Phase 3 (RLS on `leads`, keyed off
-team_members role). NOTE: `role_permissions`/config write-RLS still uses the temp
-owner-email allowlist (chhavi@/anuj@/abitzu.claude@) — swap to a team_members
-locked-role lookup in Phase 3. New Supabase logins won't auto-appear in team_members
-(no trigger yet) — add one, or seed manually, when onboarding real teammates.
+`team_members` has unique(user_id) + unique(lower(email)). **Team tab extras DONE** — members have per-row Deactivate/Reactivate
+(`team_members.deactivated`) and Remove (confirm modal → deletes the team_members
+row; its login stays in auth.users). New **`public.pocs`** table = the salesperson
+names on lead cards (`leads.assigned_poc` is free text: Chhavi 150 / Rajinder 10 /
+Anuj 2). A POC optionally attaches to a login via `pocs.team_member_id` (unique,
+nullable). Seeded from distinct assigned_poc; Chhavi→chhavi@, Anuj→anuj@ auto-linked,
+**Rajinder has NO login (unlinked)**. Team tab has a "Points of contact" section:
+per-POC lead count, attach-to-login dropdown (active members only), Add POC, Remove
+(confirm). RLS on pocs: read=authenticated, write=owners (`is_access_owner`).
+
+**THE POC↔LOGIN LINK is the key to Phase 2 "own leads only":** a signed-in user →
+their team_member → the POC attached to that member → leads where `assigned_poc` =
+that POC name. So "View all POCs' leads" OFF ⇒ show only leads whose assigned_poc
+maps back to the current login. (Open Q for Phase 2: make the board's POC field a
+picker of real POCs instead of free text.) Rajinder needs a login created if he must
+sign in / own-leads-filter for him.
+
+**Next = Phase 2:** enforce permissions on the LIVE board — read the signed-in
+user's role via team_members → its role_permissions → apply the hybrid hide/disable
+(single Edit button unlocks only allowed lead-card sections; "own leads only" uses
+the POC↔login chain above). CONFIRM the exact gates with the user before changing
+board behavior. Then Phase 3 (RLS on `leads`). NOTE: config write-RLS still uses the
+temp owner-email allowlist (chhavi@/anuj@/abitzu.claude@); page access = abitzu.claude
+only. New Supabase logins won't auto-appear in team_members (no trigger yet).
 
 **STANDING RULE — when you build ANY new user-facing feature or action, you MUST
 also wire its permission into this system:** define the permission (in the matrix /
