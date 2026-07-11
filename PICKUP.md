@@ -100,6 +100,99 @@ to `main` is the single irreversible "go live" step and always needs approval.
   opening a PR to `main` (for the preview) is expected; **never merge to `main` (go
   live) without the user's explicit approval.** See "Delivery workflow" above.
 
+## Roles & Permissions / access control (IN PROGRESS — keep this complete)
+An admin-only, role-based access-control system is being built from the
+`Roles & Permissions.dc.html` design (in the user's Claude Design project). Shape:
+- **Data model:** `roles`, `permissions`, `role_permissions` (the matrix),
+  `team_members` (login → role). Supabase-ready, snake_case.
+- **Screen:** an admin-only "Access control" page with two tabs — **Permissions**
+  (a role × permission toggle matrix) and **Team** (members list with a role
+  dropdown + status). Reached via an entry point only Admins can see.
+- **Roles:** exactly ONE **Administrator** role — always full access, not editable,
+  and NOT shown as a column in the matrix. All other roles are created by the user
+  via the **New Role** button (nothing else pre-seeded).
+- **Enforcement is three layers:** (1) the screen sets permissions, (2) the app
+  hides/disables actions per the current user's role, (3) Supabase RLS enforces it
+  for real at the DB. Only layer 3 is true security.
+- **Hide vs. disable (agreed hybrid):** *hide* whole pages/sections a role has no
+  business in (e.g. no "View analytics" → the Analytics entry point is absent);
+  *disable* individual fields/buttons inside a screen they CAN see (greyed,
+  `not-allowed` cursor, hover tooltip/lock icon "you don't have permission").
+- **Permission list (Phase 0, agreed):** 4 groups — **Board & Leads** (view / view
+  all POCs' / create / priority / reassign POC / source), **Lead details — edit by
+  section** (Follow-up, Client Information, Qualification, Demo Information, Demo
+  Feedback, plus Add follow-up), **Pipeline** (single Move & archive toggle),
+  **Analytics** (single View). No Demos/Communication/Administration groups. No
+  separate "filter" permission (filtering only reshapes your own visible set;
+  "View all POCs' leads" is the real gate).
+- **Edit-by-section UX (agreed):** the lead drawer keeps ONE Edit button (no
+  per-section buttons). Clicking it flips the card to edit mode where only the
+  allowed sections become editable; disallowed sections stay visible/readable but
+  locked (greyed, not-allowed cursor, hover lock icon). If a role can edit NO
+  section, the single Edit button is hidden entirely.
+
+**Progress:** Phase 0 (standalone `/access/` preview screen) done. **Phase 1a DONE**
+— Supabase tables `roles` / `permissions` / `role_permissions` / `team_members`
+created (RLS on; reads = any authenticated, writes = owners only via
+`public.is_access_owner()`, a TEMP email allowlist: chhavi@/anuj@/abitzu.claude@
+— replace with a team_members→locked-role lookup once real logins are wired).
+Seeded: Owner role (locked) + the 14 permissions + Owner=all. `team_members` empty
+(Team tab still shows front-end mock names by user's choice). **Phase 1b DONE** —
+`/access/` is wired to Supabase: owner-gated on the signed-in session (only
+abitzu.claude@gmail.com; others get a denied panel — NO separate login form), the
+matrix loads from the tables and toggles save via `role_permissions` upsert, New
+Role inserts a real role + its permission rows. Owner is hidden from the matrix;
+until a non-owner role exists it shows a "Create your first role" empty state. The
+live board (`index.html` bundle) now has an **owner-only "Access" header button**
+(sc-if `isOwnerUser` === abitzu.claude@gmail.com) linking to `/access/`. Team tab
+still mock (labelled "Preview"). Board (`index.html` bundle) has an owner-only
+"Access" header button linking to `/access/`. **Phase 1c DONE** — Team tab is REAL:
+`team_members` seeded from the 7 auth.users logins (Abitzu Claude/Chhavi/Anuj =
+owner; Rupesh/Hitesh/Vipul/Sales = unassigned); the tab lists real logins with a
+role dropdown (Unassigned + real roles) that saves to `team_members.role_key`, real
+last-active + status, and matrix role headers now show real member counts.
+`team_members` has unique(user_id) + unique(lower(email)). **Team tab extras DONE** — members have per-row Deactivate/Reactivate
+(`team_members.deactivated`) and Remove (confirm modal → deletes the team_members
+row; its login stays in auth.users). New **`public.pocs`** table = the salesperson
+names on lead cards (`leads.assigned_poc` is free text: Chhavi 150 / Rajinder 10 /
+Anuj 2). A POC optionally attaches to a login via `pocs.team_member_id` (unique,
+nullable). Seeded from distinct assigned_poc; Chhavi→chhavi@, Anuj→anuj@ auto-linked,
+**Rajinder has NO login (unlinked)**. Team tab has a "Points of contact" section:
+per-POC lead count, attach-to-login dropdown (active members only), Add POC, Remove
+(confirm). RLS on pocs: read=authenticated, write=owners (`is_access_owner`).
+
+**Member add/deactivate/remove + POC inactivate DONE:** members can Deactivate
+(`team_members.deactivated`) and Remove (deletes team_members row only). POCs are
+never deleted — Active/Inactive toggle (`pocs.active`) so lead history stays valid.
+**Add member DONE** via Edge Function `add-member` (verify_jwt on; owner-email-checked
+inside; uses service_role to `auth.admin.createUser` + insert team_members; returns a
+one-time temp password; rolls back the auth user if the team insert fails). Owner
+hardcoded list lives in BOTH the function and `is_access_owner()` — keep in sync.
+UI: "Add member" button → modal (name/email/role) → shows temp password to share.
+NOTE: could not live-test the function from the sandbox (proxy blocks functions.*);
+verified UI with a mocked invoke + deploy is ACTIVE — confirm with a real add on preview.
+
+**THE POC↔LOGIN LINK is the key to Phase 2 "own leads only":** a signed-in user →
+their team_member → the POC attached to that member → leads where `assigned_poc` =
+that POC name. So "View all POCs' leads" OFF ⇒ show only leads whose assigned_poc
+maps back to the current login. (Open Q for Phase 2: make the board's POC field a
+picker of real POCs instead of free text.) Rajinder needs a login created if he must
+sign in / own-leads-filter for him.
+
+**Next = Phase 2:** enforce permissions on the LIVE board — read the signed-in
+user's role via team_members → its role_permissions → apply the hybrid hide/disable
+(single Edit button unlocks only allowed lead-card sections; "own leads only" uses
+the POC↔login chain above). CONFIRM the exact gates with the user before changing
+board behavior. Then Phase 3 (RLS on `leads`). NOTE: config write-RLS still uses the
+temp owner-email allowlist (chhavi@/anuj@/abitzu.claude@); page access = abitzu.claude
+only. New Supabase logins won't auto-appear in team_members (no trigger yet).
+
+**STANDING RULE — when you build ANY new user-facing feature or action, you MUST
+also wire its permission into this system:** define the permission (in the matrix /
+`permDefs`), gate the feature by it in the app, and enforce it at the DB (RLS) if it
+touches data. A new action with no matching permission is an access-control gap —
+access control must always stay complete.
+
 ## Known quirks (cleanup candidates, not blockers)
 - **Stage order** differs between code and DB: the board's `stageDefs()` lists
   `called_no_answer` *before* `junk`, while the `pipeline_stages` table has `junk`

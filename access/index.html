@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abitzu · Roles &amp; Permissions</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
+::-webkit-scrollbar{height:10px;width:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cfdad8;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+.msi{font-family:'Material Symbols Outlined';font-weight:normal;line-height:1;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;display:inline-block;vertical-align:middle}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#f3f6f5;color:#0f1b1a">
+
+  <!-- ===== LOADING ===== -->
+  <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;color:#7b8a88">
+        <span style="width:34px;height:34px;border-radius:50%;border:3px solid #e1e7e6;border-top-color:{{ accent }};animation:spin .8s linear infinite;display:inline-block"></span>
+        <span style="font-size:13px;font-weight:600">Loading access control…</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ACCESS DENIED ===== -->
+  <sc-if value="{{ isDenied }}">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+      <div style="width:440px;max-width:100%;background:#fff;border:1px solid #e7eceb;border-radius:16px;box-shadow:0 1px 3px rgba(15,27,26,.04);padding:30px 28px;text-align:center;animation:fadeUp .22s ease">
+        <span style="width:52px;height:52px;border-radius:14px;background:#f6f8f8;color:#9aa8a6;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><span class="msi" style="font-size:28px">lock</span></span>
+        <div style="font-size:18px;font-weight:800;letter-spacing:-.3px">Owner-only page</div>
+        <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:8px;line-height:1.55">{{ denyMsg }}</div>
+        <a href="/" style="display:inline-flex;align-items:center;gap:7px;margin-top:20px;height:38px;padding:0 18px;border-radius:9px;background:{{ accent }};color:#08332f;text-decoration:none;font-weight:700;font-size:13px"><span class="msi" style="font-size:18px">arrow_back</span>Back to the board</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== READY (the app) ===== -->
+  <sc-if value="{{ isReady }}">
+
+  <!-- ===== TOP NAV ===== -->
+  <nav style="flex:none;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#fff;border-bottom:1px solid #e7eceb;position:sticky;top:0;z-index:30">
+    <div style="display:flex;align-items:center;gap:13px">
+      <a href="/" title="Back to the board" style="width:30px;height:30px;border-radius:9px;background:{{ accent }};display:flex;align-items:center;justify-content:center;color:#08332f;font-weight:800;font-size:16px;box-shadow:0 2px 6px rgba(90,206,196,.45);text-decoration:none">A</a>
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <span style="font-weight:800;font-size:15px;letter-spacing:-.2px">Abitzu</span>
+        <span style="font-size:11px;color:#7b8a88;font-weight:600">Roles &amp; Permissions</span>
+      </div>
+      <a href="/" title="Back to the leads board" style="height:34px;display:flex;align-items:center;gap:6px;margin-left:8px;padding:0 13px;border:1px solid #e1e7e6;border-radius:9px;background:#fff;color:#5d6e6c;text-decoration:none;font-family:inherit;font-weight:700;font-size:12.5px" style-hover="background:#f0f5f4;color:#0f1b1a"><span class="msi" style="font-size:17px">arrow_back</span>Back to board</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;background:#eef2f1;border-radius:9px;padding:3px;gap:2px">
+        <button onClick="{{ setMatrix }}" style="{{ matrixTab }}"><span class="msi" style="font-size:17px">grid_on</span>Permissions</button>
+        <button onClick="{{ setMembers }}" style="{{ membersTab }}"><span class="msi" style="font-size:17px">group</span>Team</button>
+      </div>
+      <button onClick="{{ newRole }}" style="height:36px;display:flex;align-items:center;gap:7px;padding:0 15px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(90,206,196,.4)" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">add</span>New Role</button>
+    </div>
+  </nav>
+
+  <!-- ===== PAGE HEADER ===== -->
+  <div style="flex:none;padding:22px 26px 4px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.5px">Access control</div>
+      <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:3px;max-width:620px;line-height:1.5">Define what each job role can see and do across the pipeline. Changes apply to every team member assigned that role.</div>
+    </div>
+    <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;gap:9px;align-items:center">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8a88;font-weight:600"><span style="width:16px;height:16px;border-radius:5px;background:{{ accentSoft }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:12px;color:{{ accent }}">check</span></span>Allowed</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#7b8a88;font-weight:600"><span style="width:16px;height:16px;border-radius:5px;background:#eef2f1;display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:12px;color:#c0ccca">remove</span></span>Denied</div>
+    </div>
+    </sc-if>
+  </div>
+
+  <!-- ===== MATRIX VIEW ===== -->
+  <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;padding:16px 26px 40px">
+
+      <!-- empty state: no roles yet (Owner is not shown as a column) -->
+      <sc-if value="{{ noRoles }}">
+        <div style="background:#fff;border:1px dashed #d5dedc;border-radius:16px;padding:48px 26px;text-align:center">
+          <span style="width:54px;height:54px;border-radius:14px;background:{{ accentSoft }};color:{{ accent }};display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><span class="msi" style="font-size:28px">badge</span></span>
+          <div style="font-size:17px;font-weight:800;letter-spacing:-.3px">Create your first role</div>
+          <div style="font-size:13px;color:#7b8a88;font-weight:500;margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.55">The <b>Owner</b> always has full access and isn't shown here. Add a role — like Sales Manager or Sales POC — then switch its permissions on or off.</div>
+          <button onClick="{{ newRole }}" style="margin-top:20px;height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 20px;border:none;border-radius:10px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:0 2px 8px rgba(90,206,196,.4)"><span class="msi" style="font-size:19px">add</span>New Role</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasRoles }}">
+      <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
+
+        <!-- column header -->
+        <div style="display:flex;align-items:stretch;border-bottom:1px solid #e7eceb;background:#fbfdfc">
+          <div style="width:300px;flex:none;padding:15px 20px;display:flex;align-items:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">Permission</div>
+          <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4">
+            <div style="{{ r.headStyle }}">
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="width:9px;height:9px;border-radius:50%;background:{{ r.color }}"></span>
+                <span style="font-size:13px;font-weight:800;letter-spacing:-.2px;color:#0f1b1a">{{ r.name }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+                <span style="font-size:11px;color:#9aa8a6;font-weight:700">{{ r.memberLabel }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- rows -->
+        <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+          <sc-if value="{{ row.isModule }}">
+            <div style="display:flex;align-items:center;gap:8px;padding:11px 20px;background:#f6f8f8;border-bottom:1px solid #eef2f1;border-top:1px solid #eef2f1">
+              <span class="msi" style="font-size:16px;color:{{ accent }}">{{ row.icon }}</span>
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#5d6e6c">{{ row.label }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ row.isPerm }}">
+            <div style="display:flex;align-items:stretch;border-bottom:1px solid #f3f6f5" style-hover="background:#fbfdfc">
+              <div style="width:300px;flex:none;padding:13px 20px;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:13px;font-weight:600;color:#0f1b1a">{{ row.label }}</span>
+                <span style="font-size:11px;color:#9aa8a6;font-weight:500">{{ row.hint }}</span>
+              </div>
+              <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="4">
+                <div style="{{ c.wrapStyle }}">
+                  <button onClick="{{ c.onToggle }}" title="{{ c.title }}" style="{{ c.btnStyle }}"><span class="msi" style="font-size:17px">{{ c.icon }}</span></button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </sc-for>
+
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:11.5px;color:#9aa8a6;font-weight:500"><span class="msi" style="font-size:15px">info</span>The Owner always retains full access and cannot be restricted — that's why it isn't listed here.</div>
+      </sc-if>
+
+    </div>
+  </sc-if>
+
+  <!-- ===== MEMBERS VIEW ===== -->
+  <sc-if value="{{ isMembers }}">
+    <div style="flex:1;padding:16px 26px 40px">
+
+      <!-- ---- Members (logins + roles) ---- -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Deactivate to pause access; remove to unlink a login from all roles.</div>
+        <button onClick="{{ openAddMember }}" style="height:34px;display:flex;align-items:center;gap:6px;padding:0 13px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;box-shadow:0 2px 8px rgba(90,206,196,.4);white-space:nowrap" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:17px">person_add</span>Add member</button>
+      </div>
+      <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
+        <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
+          <span style="flex:1">Member</span>
+          <span style="width:200px;flex:none">Role</span>
+          <span style="width:130px;flex:none">Last active</span>
+          <span style="width:96px;flex:none">Status</span>
+          <span style="width:78px;flex:none;text-align:right">Actions</span>
+        </div>
+        <sc-for list="{{ members }}" as="m" hint-placeholder-count="5">
+          <div style="{{ m.rowStyle }}" style-hover="background:#fbfdfc">
+            <div style="flex:1;display:flex;align-items:center;gap:12px;min-width:0">
+              <span style="width:38px;height:38px;border-radius:50%;background:{{ m.color }};color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ m.initial }}</span>
+              <div style="min-width:0">
+                <div style="font-size:13.5px;font-weight:700;color:#0f1b1a">{{ m.name }}</div>
+                <div style="font-size:11.5px;color:#9aa8a6;font-weight:500">{{ m.email }}</div>
+              </div>
+            </div>
+            <div style="width:200px;flex:none">
+              <select value="{{ m.role }}" onChange="{{ m.onRoleChange }}" style="height:34px;width:180px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
+                <sc-for list="{{ teamRoleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+              </select>
+            </div>
+            <div style="width:130px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ m.lastActive }}</div>
+            <div style="width:96px;flex:none;display:flex"><span style="{{ m.statusStyle }}">{{ m.statusLabel }}</span></div>
+            <div style="width:78px;flex:none;display:flex;justify-content:flex-end;gap:5px">
+              <button onClick="{{ m.onToggleActive }}" title="{{ m.actToggleTitle }}" style="width:30px;height:30px;border:1px solid #e7eceb;border-radius:8px;background:#fff;color:#7b8a88;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4;color:#0f1b1a"><span class="msi" style="font-size:16px">{{ m.actToggleIcon }}</span></button>
+              <button onClick="{{ m.onRemove }}" title="Remove from team" style="width:30px;height:30px;border:1px solid #f2dada;border-radius:8px;background:#fff;color:#d9534f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#fdecec"><span class="msi" style="font-size:16px">delete</span></button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- ---- Points of contact ---- -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:30px 0 12px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">contacts</span>Points of contact are the salespeople shown on lead cards. Attach one to a login to tie their leads to that account.</div>
+        <button onClick="{{ openPocModal }}" style="height:34px;display:flex;align-items:center;gap:6px;padding:0 13px;border:1px solid #e1e7e6;border-radius:9px;background:#fff;color:#0f1b1a;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f0f5f4"><span class="msi" style="font-size:17px">add</span>Add POC</button>
+      </div>
+      <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
+        <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
+          <span style="flex:1">Point of contact</span>
+          <span style="width:130px;flex:none">Leads</span>
+          <span style="width:280px;flex:none">Attached login</span>
+          <span style="width:96px;flex:none">Status</span>
+          <span style="width:56px;flex:none;text-align:right">Actions</span>
+        </div>
+        <sc-if value="{{ noPocs }}"><div style="padding:26px 20px;text-align:center;font-size:12.5px;color:#9aa8a6;font-weight:600">No POCs yet. Add one, or they appear here from your leads.</div></sc-if>
+        <sc-for list="{{ pocs }}" as="p" hint-placeholder-count="3">
+          <div style="{{ p.rowStyle }}" style-hover="background:#fbfdfc">
+            <div style="flex:1;display:flex;align-items:center;gap:12px;min-width:0">
+              <span style="width:34px;height:34px;border-radius:9px;background:{{ p.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ p.initial }}</span>
+              <div style="font-size:13.5px;font-weight:700;color:#0f1b1a">{{ p.name }}</div>
+            </div>
+            <div style="width:130px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ p.leadsLabel }}</div>
+            <div style="width:280px;flex:none">
+              <select value="{{ p.attachValue }}" onChange="{{ p.onAttach }}" style="height:34px;width:262px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
+                <sc-for list="{{ pocAttachOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+              </select>
+            </div>
+            <div style="width:96px;flex:none;display:flex"><span style="{{ p.statusStyle }}">{{ p.statusLabel }}</span></div>
+            <div style="width:56px;flex:none;display:flex;justify-content:flex-end">
+              <button onClick="{{ p.onToggleActive }}" title="{{ p.toggleTitle }}" style="width:30px;height:30px;border:1px solid #e7eceb;border-radius:8px;background:#fff;color:#7b8a88;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4;color:#0f1b1a"><span class="msi" style="font-size:16px">{{ p.toggleIcon }}</span></button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+    </div>
+  </sc-if>
+
+  <!-- ===== NEW ROLE MODAL ===== -->
+  <sc-if value="{{ roleModalOpen }}">
+    <div onClick="{{ closeRoleModal }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:440px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);display:flex;flex-direction:column;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">badge</span></span>
+            <div><div style="font-size:16px;font-weight:800">New Role</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Starts blank unless you clone another role</div></div>
+          </div>
+          <button onClick="{{ closeRoleModal }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Role name</span><input value="{{ draftName }}" onInput="{{ onDraftName }}" placeholder="e.g. Sales Manager" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Clone permissions from</span>
+            <select value="{{ draftClone }}" onChange="{{ onDraftClone }}" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none">
+              <option value="">Start blank</option>
+              <sc-for list="{{ cloneRoleOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+            </select>
+          </label>
+          <sc-if value="{{ draftError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ draftError }}</div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closeRoleModal }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ saveRole }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;{{ savingStyle }}" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">{{ saveIcon }}</span>{{ saveLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ADD POC MODAL ===== -->
+  <sc-if value="{{ pocModalOpen }}">
+    <div onClick="{{ closePocModal }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:420px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);display:flex;flex-direction:column;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">contacts</span></span>
+            <div><div style="font-size:16px;font-weight:800">Add point of contact</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Use the exact name that appears on lead cards</div></div>
+          </div>
+          <button onClick="{{ closePocModal }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">POC name</span><input value="{{ pocDraftName }}" onInput="{{ onPocDraftName }}" placeholder="e.g. Rajinder" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <sc-if value="{{ pocDraftError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ pocDraftError }}</div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closePocModal }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ savePoc }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">add</span>Add POC</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ADD MEMBER MODAL ===== -->
+  <sc-if value="{{ addModalOpen }}">
+    <div onClick="{{ closeAddMember }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:460px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);display:flex;flex-direction:column;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">person_add</span></span>
+            <div><div style="font-size:16px;font-weight:800">Add member</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Creates a login they can sign in with</div></div>
+          </div>
+          <button onClick="{{ closeAddMember }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
+        </div>
+
+        <!-- form state -->
+        <sc-if value="{{ addFormMode }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Full name</span><input value="{{ addName }}" onInput="{{ onAddName }}" placeholder="e.g. Rajinder Singh" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Email (their login)</span><input value="{{ addEmail }}" onInput="{{ onAddEmail }}" placeholder="e.g. rajinder@abitzu.com" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Role</span>
+            <select value="{{ addRole }}" onChange="{{ onAddRole }}" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none">
+              <sc-for list="{{ teamRoleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+            </select>
+          </label>
+          <sc-if value="{{ addError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ addError }}</div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closeAddMember }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ submitAddMember }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;{{ addBusyStyle }}" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">{{ addBusyIcon }}</span>{{ addBusyLabel }}</button>
+        </div>
+        </sc-if>
+
+        <!-- result state (temp password) -->
+        <sc-if value="{{ addResultMode }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;color:#15803d"><span class="msi" style="font-size:19px">check_circle</span>Account created for {{ addResultName }}</div>
+          <div style="font-size:12.5px;color:#5d6e6c;font-weight:500;line-height:1.5">Share this temporary password with them — they sign in with their email and can change it afterwards.</div>
+          <div style="display:flex;flex-direction:column;gap:6px;background:#f6f8f8;border:1px solid #e7eceb;border-radius:10px;padding:12px 14px">
+            <div style="font-size:11px;color:#9aa8a6;font-weight:700">EMAIL</div>
+            <div style="font-size:13px;font-weight:700;color:#0f1b1a">{{ addResultEmail }}</div>
+            <div style="font-size:11px;color:#9aa8a6;font-weight:700;margin-top:6px">TEMPORARY PASSWORD</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <code style="font-size:15px;font-weight:800;letter-spacing:.5px;color:#0f1b1a;font-family:ui-monospace,Menlo,monospace">{{ addResultPassword }}</code>
+              <button onClick="{{ copyPassword }}" title="Copy" style="height:30px;display:flex;align-items:center;gap:5px;padding:0 11px;border:1px solid #e1e7e6;border-radius:8px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer" style-hover="background:#f0f5f4"><span class="msi" style="font-size:15px">content_copy</span>Copy</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closeAddMember }}" style="height:38px;padding:0 20px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.96)">Done</button>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== CONFIRM MODAL ===== -->
+  <sc-if value="{{ confirmOpen }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:70;display:flex;align-items:flex-start;justify-content:center;padding:80px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:400px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);padding:22px;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:10px">
+          <span style="width:38px;height:38px;border-radius:11px;background:#fdecec;color:#d9534f;display:flex;align-items:center;justify-content:center;flex:none"><span class="msi" style="font-size:21px">warning</span></span>
+          <div style="font-size:16px;font-weight:800">{{ confirmTitle }}</div>
+        </div>
+        <div style="font-size:13px;color:#5d6e6c;font-weight:500;line-height:1.55;margin-bottom:18px">{{ confirmMsg }}</div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button onClick="{{ closeConfirm }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ confirmYes }}" style="height:38px;padding:0 18px;border:none;border-radius:9px;background:#d9534f;color:#fff;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.95)">{{ confirmLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  </sc-if><!-- /isReady -->
+
+  <!-- ===== TOAST ===== -->
+  <sc-if value="{{ toast }}">
+    <div style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(15,27,26,.22);animation:fadeUp .2s ease;{{ toastStyle }}">
+      <span class="msi" style="font-size:18px">{{ toastIcon }}</span>{{ toastMsg }}
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1280, &quot;height&quot;: 860 },
+  &quot;accentColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#5acec4&quot;, &quot;tsType&quot;: &quot;string&quot; }
+}">
+/*
+  Phase 1b — Roles & Permissions, wired to Supabase.
+  - Owner-only: gated on the signed-in session (abitzu.claude@gmail.com).
+  - Permissions matrix loads from / saves to public.roles, permissions,
+    role_permissions. Owner is never shown as a column (always full access).
+  - New Role creates a real role. Team tab is still preview-only mock data.
+  Enforcement on the live board (hide/disable) + RLS on leads come in later phases.
+*/
+const SB_URL = "https://gkxgnxskrkonobcbtmjs.supabase.co";
+const SB_KEY = "sb_publishable_W9smHDgcxHl89L-e153obA_7FKNkrku";
+const OWNER_EMAIL = "abitzu.claude@gmail.com";
+const MODULE_ICON = {
+  "Board & Leads": "groups",
+  "Lead details — edit by section": "fact_check",
+  "Pipeline": "view_kanban",
+  "Analytics": "bar_chart_4_bars",
+};
+const ROLE_PALETTE = ["#6366f1", "#0ea5e9", "#22a06b", "#d946a6", "#f59e0b", "#0891b2", "#7c3aed", "#e11d48"];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      phase: "loading",          // loading | denied | ready
+      denyMsg: "",
+      view: "matrix",
+      moduleDefs: [],            // [{ module, icon, items:[{id,label,hint}] }]
+      roles: [],                 // non-owner roles (columns): [{ key, name, color }]
+      perms: {},                 // { roleKey: { permId: bool } }
+      cloneRoles: [],            // all roles incl Owner, for the clone dropdown
+      loadError: "",
+      members: [],               // real team_members, loaded from Supabase
+      allRoles: [],              // every role incl Owner (with colour), for lookups
+      pocs: [],                  // points of contact (names on lead cards)
+      pocCounts: {},             // { lowercased poc name: lead count }
+      roleModalOpen: false,
+      draftName: "", draftClone: "", draftError: "", saving: false,
+      pocModalOpen: false, pocDraftName: "", pocDraftError: "",
+      addModalOpen: false, addName: "", addEmail: "", addRole: "", addError: "", addBusy: false, addResult: null,
+      confirm: null,             // { title, msg, label, onYes }
+      toast: null,
+    };
+  }
+
+  // ---- Supabase ----
+  async ensureSb(tries) {
+    tries = tries || 0;
+    if (window.supabase && window.supabase.createClient) {
+      if (!this._sb) {
+        this._sb = window.__sb || window.supabase.createClient(SB_URL, SB_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+        });
+      }
+      return this._sb;
+    }
+    if (tries > 40) return null;
+    await new Promise((r) => setTimeout(r, 100));
+    return this.ensureSb(tries + 1);
+  }
+
+  async componentDidMount() {
+    const sb = await this.ensureSb();
+    if (!sb) { this.setState({ phase: "denied", denyMsg: "Couldn't reach the sign-in service. Reload the page, or open the board first." }); return; }
+    let email = null;
+    try {
+      const res = await sb.auth.getSession();
+      email = (res && res.data && res.data.session && res.data.session.user && res.data.session.user.email) || null;
+    } catch (e) {}
+    if (email !== OWNER_EMAIL) {
+      this.setState({
+        phase: "denied",
+        denyMsg: email
+          ? ("You're signed in as " + email + ". Managing roles & permissions is limited to the account owner.")
+          : "You're not signed in. Open the board, sign in as the owner, then come back.",
+      });
+      return;
+    }
+    await this.loadData();
+  }
+
+  async loadData() {
+    const sb = this._sb;
+    try {
+      const [permsRes, rolesRes, rpRes, memRes, pocRes, leadRes] = await Promise.all([
+        sb.from("permissions").select("id,module,label,hint,position").order("position", { ascending: true }),
+        sb.from("roles").select("key,name,accent,locked,position").order("position", { ascending: true }),
+        sb.from("role_permissions").select("role_key,permission_id,allowed"),
+        sb.from("team_members").select("id,name,email,role_key,status,last_active,deactivated").order("name", { ascending: true }),
+        sb.from("pocs").select("id,name,team_member_id,active,position").order("position", { ascending: true }),
+        sb.from("leads").select("assigned_poc"),
+      ]);
+      if (permsRes.error) throw permsRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+      if (rpRes.error) throw rpRes.error;
+      if (memRes.error) throw memRes.error;
+      if (pocRes.error) throw pocRes.error;
+      const pocCounts = {};
+      (leadRes && leadRes.data ? leadRes.data : []).forEach((l) => {
+        const k = (l.assigned_poc || "").trim().toLowerCase();
+        if (k) pocCounts[k] = (pocCounts[k] || 0) + 1;
+      });
+
+      const moduleDefs = [];
+      const byMod = {};
+      (permsRes.data || []).forEach((p) => {
+        if (!byMod[p.module]) { byMod[p.module] = { module: p.module, icon: MODULE_ICON[p.module] || "tune", items: [] }; moduleDefs.push(byMod[p.module]); }
+        byMod[p.module].items.push({ id: p.id, label: p.label, hint: p.hint });
+      });
+
+      const perms = {};
+      (rpRes.data || []).forEach((rp) => { (perms[rp.role_key] = perms[rp.role_key] || {})[rp.permission_id] = rp.allowed; });
+
+      const allRoles = (rolesRes.data || []).map((r, i) => ({
+        key: r.key, name: r.name, locked: !!r.locked, color: r.accent || ROLE_PALETTE[i % ROLE_PALETTE.length],
+      }));
+      const roles = allRoles.filter((r) => !r.locked);
+      const cloneRoles = allRoles.map((r) => ({ key: r.key, name: r.name }));
+      const members = (memRes.data || []).map((m) => ({
+        id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status, lastActive: m.last_active, deactivated: !!m.deactivated,
+      }));
+      const pocs = (pocRes.data || []).map((p) => ({ id: p.id, name: p.name, memberId: p.team_member_id || "", active: p.active }));
+
+      this.setState({ phase: "ready", moduleDefs, perms, roles, allRoles, cloneRoles, members, pocs, pocCounts, loadError: "" });
+    } catch (e) {
+      this.setState({ phase: "ready", loadError: (e && e.message) || "Could not load the permission list." });
+      this.showToast("err", "Couldn't load: " + ((e && e.message) || "unknown error"));
+    }
+  }
+
+  allPermIds() { return this.state.moduleDefs.flatMap((m) => m.items.map((i) => i.id)); }
+
+  showToast(kind, msg) {
+    this.setState({ toast: { kind, msg } });
+    if (this._toastT) clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+
+  async toggle(roleKey, permId) {
+    const cur = !!(this.state.perms[roleKey] && this.state.perms[roleKey][permId]);
+    const next = !cur;
+    this.setState((s) => ({ perms: { ...s.perms, [roleKey]: { ...(s.perms[roleKey] || {}), [permId]: next } } }));
+    const { error } = await this._sb
+      .from("role_permissions")
+      .upsert({ role_key: roleKey, permission_id: permId, allowed: next }, { onConflict: "role_key,permission_id" });
+    if (error) {
+      this.setState((s) => ({ perms: { ...s.perms, [roleKey]: { ...(s.perms[roleKey] || {}), [permId]: cur } } }));
+      this.showToast("err", "Didn't save — " + error.message);
+    }
+  }
+
+  async changeMemberRole(id, role) {
+    const prev = this.state.members;
+    this.setState((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, role } : m)) }));
+    const { error } = await this._sb.from("team_members").update({ role_key: role || null }).eq("id", id);
+    if (error) { this.setState({ members: prev }); this.showToast("err", "Didn't save role — " + error.message); }
+    else { this.showToast("ok", "Role updated"); }
+  }
+
+  relTime(ts) {
+    if (!ts) return "Never signed in";
+    const d = new Date(ts); const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + " hr ago";
+    if (diff < 604800) return Math.floor(diff / 86400) + " d ago";
+    return d.toLocaleDateString();
+  }
+
+  async toggleMemberActive(id, deactivated) {
+    const prev = this.state.members;
+    this.setState((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, deactivated } : m)) }));
+    const { error } = await this._sb.from("team_members").update({ deactivated }).eq("id", id);
+    if (error) { this.setState({ members: prev }); this.showToast("err", "Didn't save — " + error.message); }
+    else { this.showToast("ok", deactivated ? "Member deactivated" : "Member reactivated"); }
+  }
+
+  askRemoveMember(m) {
+    this.setState({ confirm: {
+      title: "Remove " + m.name + "?",
+      msg: "Their login still exists, but it will be unlinked from any role and any attached POC. You can re-add them later.",
+      label: "Remove",
+      onYes: () => this.removeMember(m.id),
+    }});
+  }
+  async removeMember(id) {
+    const prevM = this.state.members, prevP = this.state.pocs;
+    this.setState((s) => ({
+      confirm: null,
+      members: s.members.filter((m) => m.id !== id),
+      pocs: s.pocs.map((p) => (p.memberId === id ? { ...p, memberId: "" } : p)),
+    }));
+    const { error } = await this._sb.from("team_members").delete().eq("id", id);
+    if (error) { this.setState({ members: prevM, pocs: prevP }); this.showToast("err", "Couldn't remove — " + error.message); }
+    else { this.showToast("ok", "Removed from team"); }
+  }
+
+  async changePocLogin(pocId, memberId) {
+    const prev = this.state.pocs;
+    this.setState((s) => ({ pocs: s.pocs.map((p) => (p.id === pocId ? { ...p, memberId } : p)) }));
+    const { error } = await this._sb.from("pocs").update({ team_member_id: memberId || null }).eq("id", pocId);
+    if (error) {
+      this.setState({ pocs: prev });
+      const dup = /duplicate|unique/i.test(error.message);
+      this.showToast("err", dup ? "That login is already attached to another POC." : ("Didn't save — " + error.message));
+    } else { this.showToast("ok", "Attachment updated"); }
+  }
+
+  openAddMember() { this.setState({ addModalOpen: true, addName: "", addEmail: "", addRole: "", addError: "", addBusy: false, addResult: null }); }
+  closeAddMember() { this.setState({ addModalOpen: false, addResult: null }); }
+  async submitAddMember() {
+    if (this.state.addBusy) return;
+    const name = (this.state.addName || "").trim();
+    const email = (this.state.addEmail || "").trim().toLowerCase();
+    if (!name) { this.setState({ addError: "Enter a name." }); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { this.setState({ addError: "Enter a valid email address." }); return; }
+    this.setState({ addBusy: true, addError: "" });
+    let data, error;
+    try { ({ data, error } = await this._sb.functions.invoke("add-member", { body: { name, email, role_key: this.state.addRole || null } })); }
+    catch (e) { this.setState({ addBusy: false, addError: (e && e.message) || "Couldn't reach the server." }); return; }
+    if (error) {
+      let msg = error.message || "Could not add member.";
+      try { if (error.context && typeof error.context.json === "function") { const j = await error.context.json(); if (j && j.error) msg = j.error; } } catch (_) {}
+      this.setState({ addBusy: false, addError: msg }); return;
+    }
+    if (data && data.error) { this.setState({ addBusy: false, addError: data.error }); return; }
+    const m = data && data.member;
+    this.setState((s) => ({
+      addBusy: false,
+      addResult: { name, email, tempPassword: (data && data.tempPassword) || "" },
+      members: m
+        ? [...s.members, { id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status || "invited", lastActive: m.last_active || null, deactivated: !!m.deactivated }].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+        : s.members,
+    }));
+  }
+  copyPassword() {
+    const pw = this.state.addResult && this.state.addResult.tempPassword;
+    if (pw && navigator.clipboard) { navigator.clipboard.writeText(pw).then(() => this.showToast("ok", "Password copied")).catch(() => {}); }
+  }
+
+  async togglePocActive(id, active) {
+    const prev = this.state.pocs;
+    this.setState((s) => ({ pocs: s.pocs.map((p) => (p.id === id ? { ...p, active } : p)) }));
+    const { error } = await this._sb.from("pocs").update({ active }).eq("id", id);
+    if (error) { this.setState({ pocs: prev }); this.showToast("err", "Didn't save — " + error.message); }
+    else { this.showToast("ok", active ? "POC reactivated" : "POC set inactive"); }
+  }
+
+  async savePoc() {
+    const name = (this.state.pocDraftName || "").trim();
+    if (!name) { this.setState({ pocDraftError: "Enter a name." }); return; }
+    if (this.state.pocs.some((p) => p.name.toLowerCase() === name.toLowerCase())) { this.setState({ pocDraftError: "That POC already exists." }); return; }
+    const position = 10 + this.state.pocs.length * 10;
+    const { data, error } = await this._sb.from("pocs").insert({ name, position }).select("id").single();
+    if (error) { this.setState({ pocDraftError: /duplicate|unique/i.test(error.message) ? "That POC already exists." : error.message }); return; }
+    const newId = (data && data.id) || ("tmp_" + Math.abs(this.hash(name)));
+    this.setState((s) => ({
+      pocs: [...s.pocs, { id: newId, name, memberId: "", active: true }],
+      pocModalOpen: false, pocDraftName: "", pocDraftError: "",
+    }));
+    this.showToast("ok", "POC “" + name + "” added");
+  }
+
+  async saveRole() {
+    if (this.state.saving) return;
+    const name = (this.state.draftName || "").trim();
+    if (!name) { this.setState({ draftError: "Give the role a name." }); return; }
+    let key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+    if (!key) key = "role_" + Math.abs(this.hash(name));
+    if (key === "owner" || this.state.roles.some((r) => r.key === key)) {
+      this.setState({ draftError: "A role with a similar name already exists." }); return;
+    }
+    this.setState({ saving: true, draftError: "" });
+
+    const color = ROLE_PALETTE[this.state.roles.length % ROLE_PALETTE.length];
+    const position = 100 + this.state.roles.length * 10;
+    const insRole = await this._sb.from("roles").insert({ key, name, accent: color, position, locked: false });
+    if (insRole.error) {
+      const dup = /duplicate|unique/i.test(insRole.error.message);
+      this.setState({ saving: false, draftError: dup ? "That role already exists." : insRole.error.message });
+      return;
+    }
+
+    const clone = this.state.draftClone;
+    const rows = this.allPermIds().map((id) => ({
+      role_key: key, permission_id: id,
+      allowed: !!(clone && this.state.perms[clone] && this.state.perms[clone][id]),
+    }));
+    if (rows.length) {
+      const insRp = await this._sb.from("role_permissions").insert(rows);
+      if (insRp.error) { this.showToast("err", "Role added, but permissions didn't save — " + insRp.error.message); }
+    }
+
+    this.setState((s) => {
+      const perms = { ...s.perms }; perms[key] = {}; rows.forEach((r) => (perms[key][r.permission_id] = r.allowed));
+      return {
+        roles: [...s.roles, { key, name, color }],
+        cloneRoles: [...s.cloneRoles, { key, name }],
+        perms, saving: false,
+        roleModalOpen: false, draftName: "", draftClone: "", draftError: "",
+      };
+    });
+    this.showToast("ok", "Role “" + name + "” created");
+  }
+
+  hash(s) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return h; }
+  pocColor(name) { const pal = ["#0ea5e9", "#6366f1", "#22a06b", "#d946a6", "#f59e0b", "#0891b2", "#7c3aed", "#e11d48"]; return pal[Math.abs(this.hash(name || "")) % pal.length]; }
+
+  colors() { const accent = this.props.accentColor || "#5acec4"; return { accent, accentSoft: accent + "24" }; }
+  tab(active) {
+    return "display:flex;align-items:center;gap:5px;height:30px;padding:0 13px;border:none;border-radius:7px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;"
+      + (active ? "background:#fff;color:#0f1b1a;box-shadow:0 1px 3px rgba(15,27,26,.1)" : "background:transparent;color:#7b8a88");
+  }
+
+  renderVals() {
+    const C = this.colors();
+    const phase = this.state.phase;
+    const roles = this.state.roles;
+    const perms = this.state.perms;
+
+    const roleHeads = roles.map((r) => {
+      const n = this.state.members.filter((m) => m.role === r.key).length;
+      return {
+        ...r,
+        memberLabel: n === 0 ? "No members" : (n + (n === 1 ? " member" : " members")),
+        headStyle: "width:200px;flex:none;padding:14px 18px;border-left:1px solid #eef2f1;display:flex;flex-direction:column;min-width:0",
+      };
+    });
+
+    const rows = [];
+    this.state.moduleDefs.forEach((mod) => {
+      rows.push({ isModule: true, label: mod.module, icon: mod.icon });
+      mod.items.forEach((item) => {
+        const cells = roles.map((r) => {
+          const on = !!(perms[r.key] && perms[r.key][item.id]);
+          const base = "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,transform .1s;border:1px solid ;cursor:pointer";
+          const btnStyle = on
+            ? "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid transparent;background:" + C.accentSoft + ";color:" + C.accent + ";cursor:pointer"
+            : "width:138px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:inherit;border:1px solid #eef2f1;background:#f6f8f8;color:#c0ccca;cursor:pointer";
+          return {
+            wrapStyle: "width:200px;flex:none;display:flex;align-items:center;justify-content:flex-start;padding:9px 18px;border-left:1px solid #f3f6f5",
+            btnStyle, icon: on ? "check" : "remove",
+            title: on ? "Allowed — click to deny" : "Denied — click to allow",
+            onToggle: (() => this.toggle(r.key, item.id)),
+          };
+        });
+        rows.push({ isPerm: true, label: item.label, hint: item.hint, cells });
+      });
+    });
+
+    // Team tab (real logins from team_members)
+    const teamRoleOptions = [{ key: "", name: "Unassigned" }].concat(this.state.allRoles.map((r) => ({ key: r.key, name: r.name })));
+    const members = this.state.members.map((m) => {
+      const roleObj = this.state.allRoles.find((r) => r.key === m.role);
+      const active = m.status === "active";
+      const dead = m.deactivated;
+      return {
+        ...m,
+        initial: (m.name && m.name[0]) ? m.name[0].toUpperCase() : "?",
+        color: dead ? "#b6c1bf" : ((roleObj && roleObj.color) || "#94a3b8"),
+        lastActive: this.relTime(m.lastActive),
+        rowStyle: "display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" + (dead ? ";opacity:.55" : ""),
+        onRoleChange: (e) => this.changeMemberRole(m.id, e.target.value),
+        onToggleActive: () => this.toggleMemberActive(m.id, !dead),
+        onRemove: () => this.askRemoveMember(m),
+        actToggleIcon: dead ? "restart_alt" : "block",
+        actToggleTitle: dead ? "Reactivate" : "Deactivate",
+        statusLabel: dead ? "Deactivated" : (active ? "Active" : "Invited"),
+        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (dead
+          ? "color:#6b7280;background:#9ca3af22" : (active
+          ? "color:#15803d;background:#22a06b1a" : "color:#b45309;background:#f59e0b1c")),
+      };
+    });
+
+    // Points of contact
+    const activeMembers = this.state.members.filter((m) => !m.deactivated);
+    const pocAttachOptions = [{ id: "", label: "Not linked" }].concat(
+      activeMembers.map((m) => ({ id: m.id, label: m.name + " · " + m.email }))
+    );
+    const pocs = this.state.pocs.map((p) => {
+      const n = this.state.pocCounts[(p.name || "").toLowerCase()] || 0;
+      const inactive = p.active === false;
+      return {
+        id: p.id, name: p.name,
+        initial: (p.name && p.name[0]) ? p.name[0].toUpperCase() : "?",
+        color: inactive ? "#b6c1bf" : this.pocColor(p.name),
+        leadsLabel: n === 0 ? "No leads" : (n + (n === 1 ? " lead" : " leads")),
+        attachValue: p.memberId || "",
+        rowStyle: "display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" + (inactive ? ";opacity:.55" : ""),
+        onAttach: (e) => this.changePocLogin(p.id, e.target.value),
+        onToggleActive: () => this.togglePocActive(p.id, inactive),
+        toggleIcon: inactive ? "restart_alt" : "block",
+        toggleTitle: inactive ? "Reactivate POC" : "Set inactive",
+        statusLabel: inactive ? "Inactive" : "Active",
+        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (inactive
+          ? "color:#6b7280;background:#9ca3af22" : "color:#15803d;background:#22a06b1a"),
+      };
+    });
+
+    const confirm = this.state.confirm;
+    const toast = this.state.toast;
+
+    return {
+      accent: C.accent, accentSoft: C.accentSoft,
+      isLoading: phase === "loading",
+      isDenied: phase === "denied",
+      isReady: phase === "ready",
+      denyMsg: this.state.denyMsg,
+
+      isMatrix: this.state.view === "matrix",
+      isMembers: this.state.view === "members",
+      hasRoles: roles.length > 0,
+      noRoles: roles.length === 0,
+      setMatrix: () => this.setState({ view: "matrix" }),
+      setMembers: () => this.setState({ view: "members" }),
+      matrixTab: this.tab(this.state.view === "matrix"),
+      membersTab: this.tab(this.state.view === "members"),
+
+      roles: roleHeads, rows, members, teamRoleOptions,
+      cloneRoleOptions: this.state.cloneRoles,
+
+      pocs, pocAttachOptions, noPocs: pocs.length === 0,
+
+      openAddMember: () => this.openAddMember(),
+      closeAddMember: () => this.closeAddMember(),
+      addModalOpen: this.state.addModalOpen,
+      addFormMode: !this.state.addResult,
+      addResultMode: !!this.state.addResult,
+      addName: this.state.addName, addEmail: this.state.addEmail, addRole: this.state.addRole, addError: this.state.addError,
+      onAddName: (e) => this.setState({ addName: e.target.value, addError: "" }),
+      onAddEmail: (e) => this.setState({ addEmail: e.target.value, addError: "" }),
+      onAddRole: (e) => this.setState({ addRole: e.target.value }),
+      submitAddMember: () => this.submitAddMember(),
+      addBusyLabel: this.state.addBusy ? "Creating…" : "Create login",
+      addBusyIcon: this.state.addBusy ? "hourglass_empty" : "person_add",
+      addBusyStyle: this.state.addBusy ? "opacity:.7;pointer-events:none" : "",
+      addResultName: this.state.addResult ? this.state.addResult.name : "",
+      addResultEmail: this.state.addResult ? this.state.addResult.email : "",
+      addResultPassword: this.state.addResult ? this.state.addResult.tempPassword : "",
+      copyPassword: () => this.copyPassword(),
+
+      openPocModal: () => this.setState({ pocModalOpen: true, pocDraftName: "", pocDraftError: "" }),
+      closePocModal: () => this.setState({ pocModalOpen: false }),
+      pocModalOpen: this.state.pocModalOpen,
+      pocDraftName: this.state.pocDraftName, pocDraftError: this.state.pocDraftError,
+      onPocDraftName: (e) => this.setState({ pocDraftName: e.target.value, pocDraftError: "" }),
+      savePoc: () => this.savePoc(),
+
+      confirmOpen: !!confirm,
+      confirmTitle: confirm ? confirm.title : "",
+      confirmMsg: confirm ? confirm.msg : "",
+      confirmLabel: confirm ? confirm.label : "Confirm",
+      confirmYes: () => { const c = this.state.confirm; if (c && c.onYes) c.onYes(); },
+      closeConfirm: () => this.setState({ confirm: null }),
+
+      newRole: () => this.setState({ roleModalOpen: true, draftName: "", draftClone: "", draftError: "" }),
+      roleModalOpen: this.state.roleModalOpen,
+      closeRoleModal: () => this.setState({ roleModalOpen: false }),
+      stopProp: (e) => e.stopPropagation(),
+      draftName: this.state.draftName, draftClone: this.state.draftClone, draftError: this.state.draftError,
+      onDraftName: (e) => this.setState({ draftName: e.target.value, draftError: "" }),
+      onDraftClone: (e) => this.setState({ draftClone: e.target.value }),
+      saveRole: () => this.saveRole(),
+      saveLabel: this.state.saving ? "Creating…" : "Create Role",
+      saveIcon: this.state.saving ? "hourglass_empty" : "add",
+      savingStyle: this.state.saving ? "opacity:.7;pointer-events:none" : "",
+
+      toast: !!toast,
+      toastMsg: toast ? toast.msg : "",
+      toastIcon: toast ? (toast.kind === "ok" ? "check_circle" : "error") : "",
+      toastStyle: toast ? (toast.kind === "ok" ? "background:#0f1b1a;color:#fff" : "background:#7f1d1d;color:#fff") : "",
+    };
+  }
+}
+</script>
+</body>
+</html>
