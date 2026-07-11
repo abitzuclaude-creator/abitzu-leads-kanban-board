@@ -161,6 +161,17 @@ nullable). Seeded from distinct assigned_poc; Chhavi→chhavi@, Anuj→anuj@ aut
 per-POC lead count, attach-to-login dropdown (active members only), Add POC, Remove
 (confirm). RLS on pocs: read=authenticated, write=owners (`is_access_owner`).
 
+**Member add/deactivate/remove + POC inactivate DONE:** members can Deactivate
+(`team_members.deactivated`) and Remove (deletes team_members row only). POCs are
+never deleted — Active/Inactive toggle (`pocs.active`) so lead history stays valid.
+**Add member DONE** via Edge Function `add-member` (verify_jwt on; owner-email-checked
+inside; uses service_role to `auth.admin.createUser` + insert team_members; returns a
+one-time temp password; rolls back the auth user if the team insert fails). Owner
+hardcoded list lives in BOTH the function and `is_access_owner()` — keep in sync.
+UI: "Add member" button → modal (name/email/role) → shows temp password to share.
+NOTE: could not live-test the function from the sandbox (proxy blocks functions.*);
+verified UI with a mocked invoke + deploy is ACTIVE — confirm with a real add on preview.
+
 **THE POC↔LOGIN LINK is the key to Phase 2 "own leads only":** a signed-in user →
 their team_member → the POC attached to that member → leads where `assigned_poc` =
 that POC name. So "View all POCs' leads" OFF ⇒ show only leads whose assigned_poc
