@@ -154,7 +154,10 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
     <div style="flex:1;padding:16px 26px 40px">
 
       <!-- ---- Members (logins + roles) ---- -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Deactivate to pause access; remove to unlink a login from all roles.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9aa8a6;font-weight:600"><span class="msi" style="font-size:15px">info</span>Assign each teammate a role. Deactivate to pause access; remove to unlink a login from all roles.</div>
+        <button onClick="{{ openAddMember }}" style="height:34px;display:flex;align-items:center;gap:6px;padding:0 13px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;box-shadow:0 2px 8px rgba(90,206,196,.4);white-space:nowrap" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:17px">person_add</span>Add member</button>
+      </div>
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
         <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
           <span style="flex:1">Member</span>
@@ -276,6 +279,59 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
     </div>
   </sc-if>
 
+  <!-- ===== ADD MEMBER MODAL ===== -->
+  <sc-if value="{{ addModalOpen }}">
+    <div onClick="{{ closeAddMember }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;animation:ovIn .18s ease">
+      <div onClick="{{ stopProp }}" style="width:460px;max-width:100%;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(15,27,26,.28);display:flex;flex-direction:column;animation:fadeUp .22s cubic-bezier(.22,1,.36,1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e7eceb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:34px;height:34px;border-radius:10px;background:{{ accentSoft }};color:{{ accent }};display:flex;align-items:center;justify-content:center"><span class="msi" style="font-size:20px">person_add</span></span>
+            <div><div style="font-size:16px;font-weight:800">Add member</div><div style="font-size:11.5px;color:#9aa8a6;font-weight:600">Creates a login they can sign in with</div></div>
+          </div>
+          <button onClick="{{ closeAddMember }}" style="width:32px;height:32px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4"><span class="msi" style="font-size:19px">close</span></button>
+        </div>
+
+        <!-- form state -->
+        <sc-if value="{{ addFormMode }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Full name</span><input value="{{ addName }}" onInput="{{ onAddName }}" placeholder="e.g. Rajinder Singh" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Email (their login)</span><input value="{{ addEmail }}" onInput="{{ onAddEmail }}" placeholder="e.g. rajinder@abitzu.com" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:500;color:#0f1b1a;background:#fafcfb;outline:none" style-focus="border-color:{{ accent }};background:#fff" /></label>
+          <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:11.5px;font-weight:700;color:#5d6e6c">Role</span>
+            <select value="{{ addRole }}" onChange="{{ onAddRole }}" style="height:38px;border:1px solid #e1e7e6;border-radius:9px;padding:0 11px;font-family:inherit;font-size:13px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none">
+              <sc-for list="{{ teamRoleOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.key }}">{{ o.name }}</option></sc-for>
+            </select>
+          </label>
+          <sc-if value="{{ addError }}"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#ef4444;background:#ef44441a;border-radius:8px;padding:9px 12px"><span class="msi" style="font-size:16px">error</span>{{ addError }}</div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closeAddMember }}" style="height:38px;padding:0 18px;border:1px solid #e7eceb;border-radius:9px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="background:#f0f5f4">Cancel</button>
+          <button onClick="{{ submitAddMember }}" style="height:38px;display:flex;align-items:center;gap:7px;padding:0 18px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;{{ addBusyStyle }}" style-hover="filter:brightness(.96)"><span class="msi" style="font-size:18px">{{ addBusyIcon }}</span>{{ addBusyLabel }}</button>
+        </div>
+        </sc-if>
+
+        <!-- result state (temp password) -->
+        <sc-if value="{{ addResultMode }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;color:#15803d"><span class="msi" style="font-size:19px">check_circle</span>Account created for {{ addResultName }}</div>
+          <div style="font-size:12.5px;color:#5d6e6c;font-weight:500;line-height:1.5">Share this temporary password with them — they sign in with their email and can change it afterwards.</div>
+          <div style="display:flex;flex-direction:column;gap:6px;background:#f6f8f8;border:1px solid #e7eceb;border-radius:10px;padding:12px 14px">
+            <div style="font-size:11px;color:#9aa8a6;font-weight:700">EMAIL</div>
+            <div style="font-size:13px;font-weight:700;color:#0f1b1a">{{ addResultEmail }}</div>
+            <div style="font-size:11px;color:#9aa8a6;font-weight:700;margin-top:6px">TEMPORARY PASSWORD</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <code style="font-size:15px;font-weight:800;letter-spacing:.5px;color:#0f1b1a;font-family:ui-monospace,Menlo,monospace">{{ addResultPassword }}</code>
+              <button onClick="{{ copyPassword }}" title="Copy" style="height:30px;display:flex;align-items:center;gap:5px;padding:0 11px;border:1px solid #e1e7e6;border-radius:8px;background:#fff;color:#5d6e6c;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer" style-hover="background:#f0f5f4"><span class="msi" style="font-size:15px">content_copy</span>Copy</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:15px 22px;border-top:1px solid #e7eceb">
+          <button onClick="{{ closeAddMember }}" style="height:38px;padding:0 20px;border:none;border-radius:9px;background:{{ accent }};color:#08332f;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer" style-hover="filter:brightness(.96)">Done</button>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
   <!-- ===== CONFIRM MODAL ===== -->
   <sc-if value="{{ confirmOpen }}">
     <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;background:rgba(15,27,26,.34);z-index:70;display:flex;align-items:flex-start;justify-content:center;padding:80px 16px;animation:ovIn .18s ease">
@@ -346,6 +402,7 @@ class Component extends DCLogic {
       roleModalOpen: false,
       draftName: "", draftClone: "", draftError: "", saving: false,
       pocModalOpen: false, pocDraftName: "", pocDraftError: "",
+      addModalOpen: false, addName: "", addEmail: "", addRole: "", addError: "", addBusy: false, addResult: null,
       confirm: null,             // { title, msg, label, onYes }
       toast: null,
     };
@@ -512,6 +569,38 @@ class Component extends DCLogic {
       const dup = /duplicate|unique/i.test(error.message);
       this.showToast("err", dup ? "That login is already attached to another POC." : ("Didn't save — " + error.message));
     } else { this.showToast("ok", "Attachment updated"); }
+  }
+
+  openAddMember() { this.setState({ addModalOpen: true, addName: "", addEmail: "", addRole: "", addError: "", addBusy: false, addResult: null }); }
+  closeAddMember() { this.setState({ addModalOpen: false, addResult: null }); }
+  async submitAddMember() {
+    if (this.state.addBusy) return;
+    const name = (this.state.addName || "").trim();
+    const email = (this.state.addEmail || "").trim().toLowerCase();
+    if (!name) { this.setState({ addError: "Enter a name." }); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { this.setState({ addError: "Enter a valid email address." }); return; }
+    this.setState({ addBusy: true, addError: "" });
+    let data, error;
+    try { ({ data, error } = await this._sb.functions.invoke("add-member", { body: { name, email, role_key: this.state.addRole || null } })); }
+    catch (e) { this.setState({ addBusy: false, addError: (e && e.message) || "Couldn't reach the server." }); return; }
+    if (error) {
+      let msg = error.message || "Could not add member.";
+      try { if (error.context && typeof error.context.json === "function") { const j = await error.context.json(); if (j && j.error) msg = j.error; } } catch (_) {}
+      this.setState({ addBusy: false, addError: msg }); return;
+    }
+    if (data && data.error) { this.setState({ addBusy: false, addError: data.error }); return; }
+    const m = data && data.member;
+    this.setState((s) => ({
+      addBusy: false,
+      addResult: { name, email, tempPassword: (data && data.tempPassword) || "" },
+      members: m
+        ? [...s.members, { id: m.id, name: m.name, email: m.email, role: m.role_key || "", status: m.status || "invited", lastActive: m.last_active || null, deactivated: !!m.deactivated }].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+        : s.members,
+    }));
+  }
+  copyPassword() {
+    const pw = this.state.addResult && this.state.addResult.tempPassword;
+    if (pw && navigator.clipboard) { navigator.clipboard.writeText(pw).then(() => this.showToast("ok", "Password copied")).catch(() => {}); }
   }
 
   async togglePocActive(id, active) {
@@ -696,6 +785,25 @@ class Component extends DCLogic {
       cloneRoleOptions: this.state.cloneRoles,
 
       pocs, pocAttachOptions, noPocs: pocs.length === 0,
+
+      openAddMember: () => this.openAddMember(),
+      closeAddMember: () => this.closeAddMember(),
+      addModalOpen: this.state.addModalOpen,
+      addFormMode: !this.state.addResult,
+      addResultMode: !!this.state.addResult,
+      addName: this.state.addName, addEmail: this.state.addEmail, addRole: this.state.addRole, addError: this.state.addError,
+      onAddName: (e) => this.setState({ addName: e.target.value, addError: "" }),
+      onAddEmail: (e) => this.setState({ addEmail: e.target.value, addError: "" }),
+      onAddRole: (e) => this.setState({ addRole: e.target.value }),
+      submitAddMember: () => this.submitAddMember(),
+      addBusyLabel: this.state.addBusy ? "Creating…" : "Create login",
+      addBusyIcon: this.state.addBusy ? "hourglass_empty" : "person_add",
+      addBusyStyle: this.state.addBusy ? "opacity:.7;pointer-events:none" : "",
+      addResultName: this.state.addResult ? this.state.addResult.name : "",
+      addResultEmail: this.state.addResult ? this.state.addResult.email : "",
+      addResultPassword: this.state.addResult ? this.state.addResult.tempPassword : "",
+      copyPassword: () => this.copyPassword(),
+
       openPocModal: () => this.setState({ pocModalOpen: true, pocDraftName: "", pocDraftError: "" }),
       closePocModal: () => this.setState({ pocModalOpen: false }),
       pocModalOpen: this.state.pocModalOpen,
