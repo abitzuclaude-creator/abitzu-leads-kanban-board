@@ -195,25 +195,27 @@ html,body{margin:0;padding:0;height:100%;background:#f3f6f5}
       <div style="background:#fff;border:1px solid #e7eceb;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,27,26,.04)">
         <div style="display:flex;align-items:center;padding:13px 20px;background:#fbfdfc;border-bottom:1px solid #e7eceb;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9aa8a6">
           <span style="flex:1">Point of contact</span>
-          <span style="width:150px;flex:none">Leads</span>
-          <span style="width:300px;flex:none">Attached login</span>
-          <span style="width:60px;flex:none;text-align:right">Remove</span>
+          <span style="width:130px;flex:none">Leads</span>
+          <span style="width:280px;flex:none">Attached login</span>
+          <span style="width:96px;flex:none">Status</span>
+          <span style="width:56px;flex:none;text-align:right">Actions</span>
         </div>
         <sc-if value="{{ noPocs }}"><div style="padding:26px 20px;text-align:center;font-size:12.5px;color:#9aa8a6;font-weight:600">No POCs yet. Add one, or they appear here from your leads.</div></sc-if>
         <sc-for list="{{ pocs }}" as="p" hint-placeholder-count="3">
-          <div style="display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" style-hover="background:#fbfdfc">
+          <div style="{{ p.rowStyle }}" style-hover="background:#fbfdfc">
             <div style="flex:1;display:flex;align-items:center;gap:12px;min-width:0">
               <span style="width:34px;height:34px;border-radius:9px;background:{{ p.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ p.initial }}</span>
               <div style="font-size:13.5px;font-weight:700;color:#0f1b1a">{{ p.name }}</div>
             </div>
-            <div style="width:150px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ p.leadsLabel }}</div>
-            <div style="width:300px;flex:none">
-              <select value="{{ p.attachValue }}" onChange="{{ p.onAttach }}" style="height:34px;width:280px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
+            <div style="width:130px;flex:none;font-size:12px;color:#7b8a88;font-weight:600">{{ p.leadsLabel }}</div>
+            <div style="width:280px;flex:none">
+              <select value="{{ p.attachValue }}" onChange="{{ p.onAttach }}" style="height:34px;width:262px;border:1px solid #e1e7e6;border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;font-weight:600;color:#0f1b1a;background:#fafcfb;cursor:pointer;outline:none" style-focus="border-color:{{ accent }}">
                 <sc-for list="{{ pocAttachOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
               </select>
             </div>
-            <div style="width:60px;flex:none;display:flex;justify-content:flex-end">
-              <button onClick="{{ p.onRemove }}" title="Remove POC" style="width:30px;height:30px;border:1px solid #f2dada;border-radius:8px;background:#fff;color:#d9534f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#fdecec"><span class="msi" style="font-size:16px">delete</span></button>
+            <div style="width:96px;flex:none;display:flex"><span style="{{ p.statusStyle }}">{{ p.statusLabel }}</span></div>
+            <div style="width:56px;flex:none;display:flex;justify-content:flex-end">
+              <button onClick="{{ p.onToggleActive }}" title="{{ p.toggleTitle }}" style="width:30px;height:30px;border:1px solid #e7eceb;border-radius:8px;background:#fff;color:#7b8a88;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#f0f5f4;color:#0f1b1a"><span class="msi" style="font-size:16px">{{ p.toggleIcon }}</span></button>
             </div>
           </div>
         </sc-for>
@@ -512,21 +514,12 @@ class Component extends DCLogic {
     } else { this.showToast("ok", "Attachment updated"); }
   }
 
-  askRemovePoc(p) {
-    const n = this.state.pocCounts[(p.name || "").toLowerCase()] || 0;
-    this.setState({ confirm: {
-      title: "Remove POC “" + p.name + "”?",
-      msg: n > 0 ? ("This POC is on " + n + " lead" + (n === 1 ? "" : "s") + ". Those leads keep the name, but it won't be a managed POC anymore.") : "This POC isn't on any leads.",
-      label: "Remove",
-      onYes: () => this.removePoc(p.id),
-    }});
-  }
-  async removePoc(id) {
+  async togglePocActive(id, active) {
     const prev = this.state.pocs;
-    this.setState((s) => ({ confirm: null, pocs: s.pocs.filter((p) => p.id !== id) }));
-    const { error } = await this._sb.from("pocs").delete().eq("id", id);
-    if (error) { this.setState({ pocs: prev }); this.showToast("err", "Couldn't remove — " + error.message); }
-    else { this.showToast("ok", "POC removed"); }
+    this.setState((s) => ({ pocs: s.pocs.map((p) => (p.id === id ? { ...p, active } : p)) }));
+    const { error } = await this._sb.from("pocs").update({ active }).eq("id", id);
+    if (error) { this.setState({ pocs: prev }); this.showToast("err", "Didn't save — " + error.message); }
+    else { this.showToast("ok", active ? "POC reactivated" : "POC set inactive"); }
   }
 
   async savePoc() {
@@ -662,14 +655,21 @@ class Component extends DCLogic {
     );
     const pocs = this.state.pocs.map((p) => {
       const n = this.state.pocCounts[(p.name || "").toLowerCase()] || 0;
+      const inactive = p.active === false;
       return {
         id: p.id, name: p.name,
         initial: (p.name && p.name[0]) ? p.name[0].toUpperCase() : "?",
-        color: this.pocColor(p.name),
+        color: inactive ? "#b6c1bf" : this.pocColor(p.name),
         leadsLabel: n === 0 ? "No leads" : (n + (n === 1 ? " lead" : " leads")),
         attachValue: p.memberId || "",
+        rowStyle: "display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #f3f6f5" + (inactive ? ";opacity:.55" : ""),
         onAttach: (e) => this.changePocLogin(p.id, e.target.value),
-        onRemove: () => this.askRemovePoc(p),
+        onToggleActive: () => this.togglePocActive(p.id, inactive),
+        toggleIcon: inactive ? "restart_alt" : "block",
+        toggleTitle: inactive ? "Reactivate POC" : "Set inactive",
+        statusLabel: inactive ? "Inactive" : "Active",
+        statusStyle: "font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;" + (inactive
+          ? "color:#6b7280;background:#9ca3af22" : "color:#15803d;background:#22a06b1a"),
       };
     });
 
